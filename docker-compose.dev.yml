@@ -1,0 +1,96 @@
+# docker-compose.dev.yml
+# Propósito: Orquestrar serviços Docker para o ambiente de desenvolvimento do projeto manuscripto.
+# Este arquivo define e configura os contêineres para a aplicação FastAPI, PostgreSQL, Redis e MinIO.
+# Variáveis de ambiente importantes: Todas as definidas no arquivo .env serão usadas pelo serviço 'app'.
+
+version: '3.8' # Especifica a versão da sintaxe do Docker Compose
+
+# Define os serviços que compõem a sua aplicação
+services:
+  # Serviço da aplicação FastAPI
+  app:
+    # Constrói a imagem Docker a partir do Dockerfile no diretório atual
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: manuscripto_app # Nome amigável para o contêiner
+    # Mapeia a porta 8000 do host para a porta 8000 do contêiner
+    ports:
+      - "8000:8000"
+    # Monta o diretório atual do host no diretório /app do contêiner.
+    # Isso permite que as alterações no código local sejam refletidas no contêiner
+    # e que o uvicorn com --reload detecte essas mudanças.
+    volumes:
+      - .:/app
+    # Carrega variáveis de ambiente do arquivo .env na raiz do projeto para este serviço
+    env_file:
+      - .env
+    # Define que este serviço depende de outros para iniciar.
+    # O Docker Compose tentará iniciá-los primeiro.
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    networks:
+      - manuscripto_network
+
+  # Serviço do banco de dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine # Imagem oficial do PostgreSQL, versão 15, baseada em Alpine para ser leve
+    container_name: manuscripto_postgres
+    # Variáveis de ambiente para configurar o PostgreSQL
+    environment:
+      POSTGRES_DB: editora # Nome do banco de dados
+      POSTGRES_USER: postgres # Nome do usuário do banco de dados
+      POSTGRES_PASSWORD: postgres # Senha do usuário do banco de dados
+    # Monta um volume para persistir os dados do PostgreSQL, mesmo se o contêiner for removido
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Mapeia a porta 5432 do host para a porta 5432 do contêiner
+    ports:
+      - "5432:5432"
+    networks:
+      - manuscripto_network
+
+  # Serviço do cache/mensageria Redis
+  redis:
+    image: redis:7-alpine # Imagem oficial do Redis, versão 7, baseada em Alpine
+    container_name: manuscripto_redis
+    # Mapeia a porta 6379 do host para a porta 6379 do contêiner
+    ports:
+      - "6379:6379"
+    # Monta um volume para persistir os dados do Redis (opcional, mas recomendado)
+    volumes:
+      - redis_data:/data
+    networks:
+      - manuscripto_network
+
+  # Serviço de armazenamento de arquivos compatível com S3 (MinIO)
+  minio:
+    image: minio/minio # Imagem oficial do MinIO
+    container_name: manuscripto_minio
+    environment: # Variáveis de ambiente para credenciais de acesso ao MinIO (matches .env.example)
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    # Mapeia as portas 9000 (API) e 9001 (Console)
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    # Comando para iniciar o servidor MinIO e sua console
+    command: server /data --console-address ":9001"
+    # Monta um volume para persistir os dados do MinIO
+    volumes:
+      - minio_data:/data
+    networks:
+      - manuscripto_network
+
+# Define volumes para persistência de dados
+volumes:
+  postgres_data: # Volume para dados do PostgreSQL
+  redis_data:    # Volume para dados do Redis
+  minio_data:    # Volume para dados do MinIO
+
+# Define uma rede Docker personalizada para que os serviços possam se comunicar pelo nome
+networks:
+  manuscripto_network:
+    driver: bridge
