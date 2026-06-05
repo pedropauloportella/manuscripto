@@ -1,0 +1,9 @@
+# requirements.txt
+# Propósito: Listar todas as dependências Python necessárias para a aplicação.
+# Este arquivo é usado pelo Dockerfile para instalar os pacotes no ambiente do contêiner.
+# Variáveis de ambiente importantes: Nenhuma diretamente neste arquivo.
+
+# Framework Web Assíncrono
+fastapi~=0.104.1
+# Servidor ASGI para FastAPI, incluindo dependências padrão para desempenho (ex: httptools, ujson)
+uvicorn[standard]~=0.23.2
