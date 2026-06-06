@@ -7,3 +7,9 @@
 fastapi~=0.104.1
 # Servidor ASGI para FastAPI, incluindo dependências padrão para desempenho (ex: httptools, ujson)
 uvicorn[standard]~=0.23.2
+# Para JSON Web Tokens (JWT)
+python-jose[cryptography]~=3.3.0
+# Para requisições HTTP assíncronas
+httpx~=0.25.0
+# Para configurações carregadas de variáveis de ambiente com Pydantic
+pydantic-settings~=2.1.0
