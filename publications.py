@@ -79,3 +79,57 @@ def upload_versao(
     )
 
     return db_versao
+
+@router.get("/{pub_id}/versoes", response_model=List[schemas.Versao])
+def list_versoes(
+    pub_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_user)
+):
+    """Lista todas as versões de uma publicação (Apenas para autores)."""
+    autor_vinculo = db.query(models.AutorPublicacao).filter(
+        models.AutorPublicacao.publicacao_id == pub_id,
+        models.AutorPublicacao.usuario_id == current_user.id
+    ).first()
+    
+    if not autor_vinculo and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+        
+    return db.query(models.Versao).filter(models.Versao.publicacao_id == pub_id).all()
+
+@router.get("/{pub_id}/versoes/{versao_id}/download")
+def download_versao(
+    pub_id: int,
+    versao_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_user)
+):
+    """Gera link de download para uma versão específica."""
+    autor_vinculo = db.query(models.AutorPublicacao).filter(
+        models.AutorPublicacao.publicacao_id == pub_id,
+        models.AutorPublicacao.usuario_id == current_user.id
+    ).first()
+    
+    if not autor_vinculo and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    versao = db.query(models.Versao).filter(
+        models.Versao.id == versao_id, 
+        models.Versao.publicacao_id == pub_id
+    ).first()
+    
+    if not versao:
+        raise HTTPException(status_code=404, detail="Versão não encontrada")
+
+    url = storage_service.get_presigned_url(versao.caminho_arquivo_s3)
+    
+    LogService.log_event(
+        db=db,
+        tipo_evento="download",
+        descricao=f"Usuário {current_user.email} baixou a versão {versao.numero_versao} da publicação {pub_id}",
+        usuario_id=current_user.id,
+        entidade_id=versao.id,
+        entidade_tipo="Versao"
+    )
+    
+    return {"download_url": url}

@@ -27,4 +27,18 @@ class StorageService:
         except Exception as e:
             raise Exception(f"Erro ao fazer upload para o S3: {str(e)}")
 
+    def get_presigned_url(self, file_key: str, expires_in: int = 3600) -> str:
+        """
+        Gera uma URL temporária para acesso ao arquivo no S3/MinIO.
+        """
+        try:
+            url = self.s3.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': settings.MINIO_BUCKET, 'Key': file_key},
+                ExpiresIn=expires_in
+            )
+            return url
+        except Exception as e:
+            raise Exception(f"Erro ao gerar URL assinada: {str(e)}")
+
 storage_service = StorageService()
