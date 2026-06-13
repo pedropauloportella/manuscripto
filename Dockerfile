@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copia o arquivo de requisitos e instala as dependências Python
@@ -24,6 +25,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia o restante do código da aplicação para o contêiner
 COPY . .
+
+# Garante que o diretório raiz esteja no path do Python para encontrar o módulo 'app'
+ENV PYTHONPATH=/app
 
 # Define o comando padrão para rodar a aplicação usando Uvicorn
 # --host 0.0.0.0 é essencial para que a aplicação seja acessível de fora do contêiner

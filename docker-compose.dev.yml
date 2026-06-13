@@ -3,8 +3,6 @@
 # Este arquivo define e configura os contêineres para a aplicação FastAPI, PostgreSQL, Redis e MinIO.
 # Variáveis de ambiente importantes: Todas as definidas no arquivo .env serão usadas pelo serviço 'app'.
 
-version: '3.8' # Especifica a versão da sintaxe do Docker Compose
-
 # Define os serviços que compõem a sua aplicação
 services:
   # Serviço da aplicação FastAPI
@@ -25,6 +23,10 @@ services:
     # Carrega variáveis de ambiente do arquivo .env na raiz do projeto para este serviço
     env_file:
       - .env
+    # Adiciona DNS externo para garantir que o container consiga resolver o host do Supabase no Windows
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     # Define que este serviço depende de outros para iniciar.
     # O Docker Compose tentará iniciá-los primeiro.
     depends_on:

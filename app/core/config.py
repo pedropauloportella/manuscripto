@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 dias
 
     # Banco de Dados
-    # Formato Supabase: postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres
+    # Nota: Use a porta 6543 e ?sslmode=require para compatibilidade com Docker/IPv4
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/editora"
 
     # OAuth

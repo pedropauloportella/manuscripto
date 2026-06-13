@@ -74,11 +74,14 @@ Para que o login via ORCID funcione, você precisará registrar uma aplicação 
 
 ### 4. Executando com Docker Compose
 
-Certifique-se de ter Docker e Docker Compose instalados.
+Certifique-se de ter o Docker Desktop instalado e rodando. No Windows, prefira usar o PowerShell.
 
 ```bash
-# Inicia todos os serviços (app, postgres, redis, minio)
-docker-compose -f docker-compose.dev.yml up --build -d
+# 1. Inicia os serviços (O parâmetro -f é obrigatório para arquivos com nomes customizados)
+docker compose -f docker-compose.dev.yml up --build -d
+
+# 2. Verifique se os contêineres estão "Up" (rodando)
+docker compose -f docker-compose.dev.yml ps
 ```
 
 ### 5. Migrações do Banco de Dados
@@ -87,8 +90,8 @@ Após os contêineres estarem rodando, aplique as migrações do banco de dados:
 
 ```bash
 # Execute este comando de dentro do contêiner da aplicação, ou usando um serviço separado no docker-compose
-# Exemplo (se alembic estiver configurado para rodar no serviço 'app'):
-docker-compose -f docker-compose.dev.yml exec app alembic upgrade head
+# Nota: O container 'app' deve estar rodando (docker compose ps)
+docker compose -f docker-compose.dev.yml exec app alembic upgrade head
 ```
 
 ### 6. Criar Usuário Administrador (Opcional)
@@ -116,3 +119,6 @@ docker-compose -f docker-compose.dev.yml exec app pytest
 ## Frontend
 
 O frontend em React é uma aplicação separada e deve ser configurado e executado conforme suas próprias instruções (normalmente `npm install` e `npm start` em seu próprio diretório). Ele interagirá com esta API.
+
+
+exec app python scripts/create_admin.py --email admin@example.com --password adminpassword
