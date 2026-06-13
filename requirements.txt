@@ -1,15 +1,12 @@
-# requirements.txt
-# Propósito: Listar todas as dependências Python necessárias para a aplicação.
-# Este arquivo é usado pelo Dockerfile para instalar os pacotes no ambiente do contêiner.
-# Variáveis de ambiente importantes: Nenhuma diretamente neste arquivo.
-
-# Framework Web Assíncrono
-fastapi~=0.104.1
-# Servidor ASGI para FastAPI, incluindo dependências padrão para desempenho (ex: httptools, ujson)
-uvicorn[standard]~=0.23.2
-# Para JSON Web Tokens (JWT)
-python-jose[cryptography]~=3.3.0
-# Para requisições HTTP assíncronas
-httpx~=0.25.0
-# Para configurações carregadas de variáveis de ambiente com Pydantic
-pydantic-settings~=2.1.0
+fastapi==0.109.0
+uvicorn==0.27.0
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+pydantic-settings==2.1.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+mercadopago==2.2.0
+httpx==0.26.0
+authlib==1.3.0
