@@ -1,25 +1,36 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.db import models
+from app import models, schemas
+from app.api import deps
 from app.services.mercadopago_service import mp_service
 
 router = APIRouter()
 
-@router.post("/checkout/{publication_id}")
-async def create_checkout(publication_id: int, user_id: int, db: Session = Depends(get_db)):
-    pub = db.query(models.Publication).filter(models.Publication.id == publication_id).first()
-    if not pub or not pub.is_open_vacancy:
+@router.post("/checkout/{vaga_id}")
+async def create_checkout(
+    vaga_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_user)
+):
+    # Busca a vaga específica em vez da publicação genérica
+    vaga = db.query(models.Vaga).filter(models.Vaga.id == vaga_id, models.Vaga.ativa == True).first()
+    if not vaga or vaga.quantidade_disponivel <= 0:
         raise HTTPException(status_code=404, detail="Vaga não disponível")
 
     # 1. Registra intenção de pagamento no banco
-    db_payment = models.Payment(user_id=user_id, publication_id=publication_id, status="pending")
+    db_payment = models.Compra(
+        usuario_id=current_user.id, 
+        vaga_id=vaga.id, 
+        valor_pago=vaga.preco,
+        status="pendente"
+    )
     db.add(db_payment)
     db.commit()
     db.refresh(db_payment)
 
     # 2. Gera link no MercadoPago
-    mp_preference = mp_service.create_payment_link(pub.title, pub.price, db_payment.id)
+    mp_preference = mp_service.create_payment_link(vaga.titulo, float(vaga.preco), db_payment.id)
     
     db_payment.mp_preference_id = mp_preference["id"]
     db.commit()

@@ -1,5 +1,6 @@
 from datetime import timedelta
 from typing import Any
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -36,5 +37,30 @@ def read_user_me(
     """Retorna o perfil do usuário logado."""
     return current_user
 
-# TODO: Implementar @router.get("/orcid/callback") 
-# para trocar o 'code' do ORCID por um access token e criar/logar o usuário.
+@router.get("/orcid/callback")
+async def orcid_callback(code: str, db: Session = Depends(get_db)):
+    """Troca o código do ORCID por um token e loga o usuário."""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://orcid.org/oauth/token",
+            data={
+                "client_id": settings.ORCID_CLIENT_ID,
+                "client_secret": settings.ORCID_CLIENT_SECRET,
+                "grant_type": "authorization_code",
+                "code": code,
+            },
+            headers={"Accept": "application/json"}
+        )
+    
+    if response.status_code != 200:
+        raise HTTPException(status_code=400, detail="Falha na autenticação com ORCID")
+    
+    data = response.json()
+    # Aqui você buscaria o usuário pelo data['orcid'] ou criaria um novo
+    # e então geraria o token JWT do sistema usando utils.create_access_token
+    
+    return {
+        "orcid": data.get("orcid"),
+        "name": data.get("name"),
+        "msg": "Integração parcial: Implementar persistência de usuário."
+    }

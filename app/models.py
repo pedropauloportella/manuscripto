@@ -4,6 +4,7 @@ from app.db.base_class import Base  # Importa a Base declarativa personalizada
 from sqlalchemy import String, Boolean, Integer, ForeignKey, DateTime, func, Text, DECIMAL
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List, Optional
+from datetime import datetime
 
 class Usuario(Base):
     __tablename__ = "usuario"
