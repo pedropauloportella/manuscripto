@@ -64,3 +64,26 @@ class Publicacao(PublicacaoBase):
 
     class Config:
         from_attributes = True
+
+class VersaoBase(BaseModel):
+    numero_versao: str
+
+class VersaoCreate(VersaoBase):
+    pass
+
+class Versao(VersaoBase):
+    id: int
+    publicacao_id: int
+    caminho_arquivo_s3: str
+    data_upload: datetime
+
+    class Config:
+        from_attributes = True
+
+class LogEvento(BaseModel):
+    tipo_evento: str
+    descricao: str
+    data_evento: datetime
+    usuario_id: Optional[int] = None
+    entidade_id: Optional[int] = None
+    entidade_tipo: Optional[str] = None

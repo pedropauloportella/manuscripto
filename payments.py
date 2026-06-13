@@ -4,6 +4,7 @@ from app.db.session import get_db
 from app import models, schemas
 from app.api import deps
 from app.services.mercadopago_service import mp_service
+from app.services.log_service import LogService
 
 router = APIRouter()
 
@@ -34,6 +35,15 @@ async def create_checkout(
     
     db_payment.mp_preference_id = mp_preference["id"]
     db.commit()
+
+    LogService.log_event(
+        db=db,
+        tipo_evento="checkout_iniciado",
+        descricao=f"Usuário {current_user.id} iniciou checkout para vaga {vaga_id}",
+        usuario_id=current_user.id,
+        entidade_id=db_payment.id,
+        entidade_tipo="Compra"
+    )
 
     return {"init_point": mp_preference["init_point"]}
 
@@ -76,5 +86,14 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                     vaga.quantidade_disponivel -= 1
                 
                 db.commit()
+
+                LogService.log_event(
+                    db=db,
+                    tipo_evento="compra_aprovada",
+                    descricao=f"Pagamento aprovado para a compra {db_payment.id}",
+                    usuario_id=db_payment.usuario_id,
+                    entidade_id=db_payment.id,
+                    entidade_tipo="Compra"
+                )
 
     return {"status": "ok"}

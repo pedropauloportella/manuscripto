@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     # MercadoPago
     MERCADOPAGO_ACCESS_TOKEN: Optional[str] = None
 
+    # Armazenamento (MinIO / S3)
+    MINIO_ENDPOINT: str = "localhost:9000"
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_BUCKET: str = "manuscripto"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

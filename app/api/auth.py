@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, List
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -30,6 +30,17 @@ def login_access_token(
         "token_type": "bearer",
     }
 
+@router.get("/me/publications", response_model=List[schemas.Publicacao])
+def read_user_publications(
+    current_user: models.Usuario = Depends(deps.get_current_user),
+    db: Session = Depends(get_db)
+) -> Any:
+    """Retorna as publicações em que o usuário logado é autor/coautor."""
+    return [
+        vinculo.publicacao 
+        for vinculo in current_user.publicacoes
+    ]
+
 @router.get("/me", response_model=schemas.User)
 def read_user_me(
     current_user: models.Usuario = Depends(deps.get_current_user),
@@ -51,16 +62,34 @@ async def orcid_callback(code: str, db: Session = Depends(get_db)):
             },
             headers={"Accept": "application/json"}
         )
-    
+
     if response.status_code != 200:
         raise HTTPException(status_code=400, detail="Falha na autenticação com ORCID")
-    
+
     data = response.json()
-    # Aqui você buscaria o usuário pelo data['orcid'] ou criaria um novo
-    # e então geraria o token JWT do sistema usando utils.create_access_token
-    
+    orcid_id = data.get("orcid")
+    nome = data.get("name")
+
+    # Busca ou Cria o usuário
+    user = db.query(models.Usuario).filter(models.Usuario.orcid_id == orcid_id).first()
+
+    if not user:
+        # Como o ORCID as vezes não retorna email público no token inicial, 
+        # usamos o orcid_id como identificador único ou placeholder
+        user = models.Usuario(
+            orcid_id=orcid_id,
+            nome_completo=nome,
+            email=f"{orcid_id}@orcid.org", # Placeholder se email não disponível
+            is_active=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
-        "orcid": data.get("orcid"),
-        "name": data.get("name"),
-        "msg": "Integração parcial: Implementar persistência de usuário."
+        "access_token": utils.create_access_token(
+            user.id, expires_delta=access_token_expires
+        ),
+        "token_type": "bearer",
     }
