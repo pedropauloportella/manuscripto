@@ -91,6 +91,11 @@ Após os contêineres estarem rodando, aplique as migrações do banco de dados:
 ```bash
 # Execute este comando de dentro do contêiner da aplicação, ou usando um serviço separado no docker-compose
 # Nota: O container 'app' deve estar rodando (docker compose ps)
+
+# 1. Gere a revisão inicial (detecta automaticamente os modelos em app/models.py)
+docker compose -f docker-compose.dev.yml exec app alembic revision --autogenerate -m "Initial migration"
+
+# 2. Aplique a migração ao banco no Supabase
 docker compose -f docker-compose.dev.yml exec app alembic upgrade head
 ```
 

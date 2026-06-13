@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 dias
 
     # Banco de Dados
-    # Nota: Use a porta 6543 e ?sslmode=require para compatibilidade com Docker/IPv4
+    # Nota: Use a porta 6543, sslmode=require e username 'postgres.[REF-PROJETO]' para o Supabase Pooler
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/editora"
 
     # OAuth
