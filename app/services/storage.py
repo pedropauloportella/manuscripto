@@ -8,9 +8,10 @@ class StorageService:
     def __init__(self):
         self.s3 = boto3.client(
             's3',
-            endpoint_url=f"http://{settings.MINIO_ENDPOINT}",
-            aws_access_key_id=settings.MINIO_ACCESS_KEY,
-            aws_secret_access_key=settings.MINIO_SECRET_KEY
+            endpoint_url=settings.S3_ENDPOINT,
+            aws_access_key_id=settings.S3_ACCESS_KEY,
+            aws_secret_access_key=settings.S3_SECRET_KEY,
+            region_name=settings.S3_REGION
         )
 
     def upload_file(self, file: UploadFile, folder: str = "manuscripts") -> str:
@@ -20,7 +21,7 @@ class StorageService:
         try:
             self.s3.upload_fileobj(
                 file.file,
-                settings.MINIO_BUCKET,
+                settings.S3_BUCKET,
                 file_key
             )
             return file_key
@@ -34,7 +35,7 @@ class StorageService:
         try:
             url = self.s3.generate_presigned_url(
                 'get_object',
-                Params={'Bucket': settings.MINIO_BUCKET, 'Key': file_key},
+                Params={'Bucket': settings.S3_BUCKET, 'Key': file_key},
                 ExpiresIn=expires_in
             )
             return url

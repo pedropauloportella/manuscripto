@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 dias
 
     # Banco de Dados
-    DATABASE_URL: str = "postgresql://postgres:postgres@db:5432/manuscripto"
+    # Formato Supabase: postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres
+    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/editora"
 
     # OAuth
     ORCID_CLIENT_ID: Optional[str] = None
@@ -19,11 +20,12 @@ class Settings(BaseSettings):
     # MercadoPago
     MERCADOPAGO_ACCESS_TOKEN: Optional[str] = None
 
-    # Armazenamento (MinIO / S3)
-    MINIO_ENDPOINT: str = "localhost:9000"
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin"
-    MINIO_BUCKET: str = "manuscripto"
+    # Armazenamento (S3 / Supabase Storage)
+    S3_ENDPOINT: Optional[str] = None # Ex: https://[REF].supabase.co/storage/v1/s3
+    S3_ACCESS_KEY: Optional[str] = None
+    S3_SECRET_KEY: Optional[str] = None
+    S3_BUCKET: str = "manuscripto"
+    S3_REGION: str = "sa-east-1"
 
     class Config:
         env_file = ".env"
