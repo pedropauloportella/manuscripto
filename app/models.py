@@ -6,15 +6,22 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List, Optional
 
 class Usuario(Base):
-    """
-    def __repr__(self) -> str:
-        """Representação string do objeto Usuario."""
-        return f"<Usuario(id={self.id}, email='{self.email}', orcid_id='{self.orcid_id}')>"
-    
+    __tablename__ = "usuario"
+
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    nome_completo: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    orcid_id: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True, nullable=True)
+    hashed_password: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # Relacionamento com Publicacao (se for autor/editor de Publicações)
     publicacoes: Mapped[List["AutorPublicacao"]] = relationship(back_populates="autor")
     # Relacionamento com Compra
     compras: Mapped[List["Compra"]] = relationship(back_populates="comprador")
+
+    def __repr__(self) -> str:
+        return f"<Usuario(id={self.id}, email='{self.email}', orcid_id='{self.orcid_id}')>"
 
 class Publicacao(Base):
     """

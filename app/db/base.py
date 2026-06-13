@@ -3,4 +3,4 @@
 
 from app.db.base_class import Base  # noqa: F401 - Importa a Base declarativa personalizada
 # Importar todos os modelos aqui para que o Alembic os detecte
-from app.models import Usuario, Publicacao, Vaga, Compra, AutorPublicacao, Versao, LogEvento # noqa: F401
+from app.models import Usuario, Publicacao, Vaga, Compra, AutorPublicacao, Versao, LogEvento, Base # noqa: F401
