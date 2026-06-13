@@ -93,3 +93,66 @@ async def orcid_callback(code: str, db: Session = Depends(get_db)):
         ),
         "token_type": "bearer",
     }
+
+@router.get("/google/callback")
+async def google_callback(code: str, db: Session = Depends(get_db)):
+    """Troca o código do Google por um token e loga o usuário."""
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Configuração do Google OAuth ausente")
+
+    async with httpx.AsyncClient() as client:
+        # 1. Trocar o código pelo token de acesso
+        token_response = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": f"http://localhost:8000{settings.API_V1_STR}/auth/google/callback",
+            },
+        )
+
+        if token_response.status_code != 200:
+            raise HTTPException(status_code=400, detail="Falha na autenticação com Google (token)")
+
+        token_data = token_response.json()
+        access_token = token_data.get("access_token")
+
+        # 2. Obter informações do perfil do usuário
+        user_info_response = await client.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        if user_info_response.status_code != 200:
+            raise HTTPException(status_code=400, detail="Falha ao obter dados do usuário no Google")
+
+        user_data = user_info_response.json()
+        email = user_data.get("email")
+        nome = user_data.get("name")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email não retornado pelo Google")
+
+    # 3. Busca ou Cria o usuário no banco local
+    user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+
+    if not user:
+        user = models.Usuario(
+            email=email,
+            nome_completo=nome,
+            is_active=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # 4. Gerar o token de acesso (JWT) do Manuscripto
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    return {
+        "access_token": utils.create_access_token(
+            user.id, expires_delta=access_token_expires
+        ),
+        "token_type": "bearer",
+    }

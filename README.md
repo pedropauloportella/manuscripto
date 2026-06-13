@@ -13,7 +13,7 @@ Este MVP visa permitir que um editor crie vagas numa publicação, exiba-as no c
 - **Backend:** Python 3.11+, FastAPI, SQLAlchemy (ORM) + Alembic, Pydantic, Uvicorn
 - **Banco de Dados:** PostgreSQL
 - **Cache/Mensageria:** Redis
-- **Armazenamento de Arquivos:** S3 compatible storage (MinIO para desenvolvimento)
+- **Armazenamento de Arquivos:** Supabase Storage (via S3 API)
 - **Frontend:** React (aplicação separada)
 - **Pagamento:** MercadoPago (sandbox)
 - **Autenticação:** JWT, OAuth2 (ORCID, Google)
@@ -116,4 +116,3 @@ docker-compose -f docker-compose.dev.yml exec app pytest
 ## Frontend
 
 O frontend em React é uma aplicação separada e deve ser configurado e executado conforme suas próprias instruções (normalmente `npm install` e `npm start` em seu próprio diretório). Ele interagirá com esta API.
-
