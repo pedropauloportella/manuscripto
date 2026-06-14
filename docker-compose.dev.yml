@@ -50,21 +50,6 @@ services:
     networks:
       - manuscripto_network
 
-  # Banco de Dados Local para Desenvolvimento e Testes
-  db:
-    image: postgres:15-alphine
-    container_name: manuscripto_db
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=editora
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - manuscripto_network
-
   # Serviço do cache/mensageria Redis
   redis:
     image: redis:7-alpine # Imagem oficial do Redis, versão 7, baseada em Alpine
