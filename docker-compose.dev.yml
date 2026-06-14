@@ -46,7 +46,6 @@ services:
     env_file:
       - .env
     depends_on:
-      - db
       - redis
     networks:
       - manuscripto_network
@@ -82,7 +81,6 @@ services:
 # Define volumes para persistência de dados
 volumes:
   redis_data:    # Volume para dados do Redis
-  postgres_data: # Volume para dados do Postgres
 
 # Define uma rede Docker personalizada para que os serviços possam se comunicar pelo nome
 networks:
