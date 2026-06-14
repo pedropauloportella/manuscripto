@@ -9,10 +9,9 @@ from pydantic import ValidationError
 from app.db.session import get_db
 from app.core.config import settings
 from app import models, schemas
-from app.auth.utils import ALGORITHM
 
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/auth/login"
+    tokenUrl=f"{settings.API_V1_STR}/auth/login" # Opcional se usar Supabase Auth no Front
 )
 
 def get_current_user(
@@ -21,9 +20,11 @@ def get_current_user(
     """
     Valida o token JWT e recupera o usuário atual do banco de dados.
     """
+    # Supabase usa algoritmo HS256 por padrão
+    jwt_secret = settings.SUPABASE_JWT_SECRET or settings.SECRET_KEY
     try:
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[ALGORITHM]
+            token, jwt_secret, algorithms=["HS256"], audience="authenticated"
         )
         token_data = schemas.TokenPayload(**payload)
     except (JWTError, ValidationError):

@@ -1,7 +1,8 @@
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, List
 import httpx
+from jose import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.api import deps
 from app.db.session import get_db
+from app.services.log_service import LogService
 from app.auth import utils
 from app.core.config import settings
 
@@ -23,11 +25,29 @@ def login_access_token(
     if not user or not utils.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Email ou senha incorretos")
     
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    # Gera token compatível com Supabase
+    jwt_secret = settings.SUPABASE_JWT_SECRET or settings.SECRET_KEY
+    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    payload = {
+        "sub": str(user.id),
+        "email": user.email,
+        "aud": "authenticated",
+        "role": "authenticated",
+        "exp": expire
+    }
+    
+    token = jwt.encode(payload, jwt_secret, algorithm="HS256")
+
+    LogService.log_event(
+        db=db,
+        tipo_evento="login_direto",
+        descricao=f"Usuário {user.email} realizou login via formulário",
+        usuario_id=user.id
+    )
+
     return {
-        "access_token": utils.create_access_token(
-            user.id, expires_delta=access_token_expires
-        ),
+        "access_token": token,
         "token_type": "bearer",
     }
 
@@ -95,14 +115,39 @@ async def orcid_callback(code: str, db: Session = Depends(get_db)):
             is_active=True
         )
         db.add(user)
+        
+        LogService.log_event(
+            db=db,
+            tipo_evento="usuario_criado_orcid",
+            descricao=f"Novo usuário criado via ORCID: {orcid_id}",
+            usuario_id=user.id
+        )
         db.commit()
         db.refresh(user)
+    else:
+        LogService.log_event(
+            db=db,
+            tipo_evento="login_orcid",
+            descricao=f"Login via ORCID: {orcid_id}",
+            usuario_id=user.id
+        )
 
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    # Gera token compatível com Supabase Auth
+    jwt_secret = settings.SUPABASE_JWT_SECRET or settings.SECRET_KEY
+    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    payload = {
+        "sub": str(user.id),
+        "email": user.email,
+        "aud": "authenticated",
+        "role": "authenticated",
+        "exp": expire
+    }
+    
+    token = jwt.encode(payload, jwt_secret, algorithm="HS256")
+
     return {
-        "access_token": utils.create_access_token(
-            str(user.id), expires_delta=access_token_expires
-        ),
+        "access_token": token,
         "token_type": "bearer",
     }
 
@@ -166,14 +211,38 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
             is_active=True
         )
         db.add(user)
+        
+        LogService.log_event(
+            db=db,
+            tipo_evento="usuario_criado_google",
+            descricao=f"Novo usuário criado via Google: {email}",
+            usuario_id=user.id
+        )
         db.commit()
         db.refresh(user)
+    else:
+        LogService.log_event(
+            db=db,
+            tipo_evento="login_google",
+            descricao=f"Login via Google: {email}",
+            usuario_id=user.id
+        )
 
-    # 4. Gerar o token de acesso (JWT) do Manuscripto
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    # Gera token compatível com Supabase Auth
+    jwt_secret = settings.SUPABASE_JWT_SECRET or settings.SECRET_KEY
+    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    payload = {
+        "sub": str(user.id),
+        "email": user.email,
+        "aud": "authenticated",
+        "role": "authenticated",
+        "exp": expire
+    }
+    
+    token = jwt.encode(payload, jwt_secret, algorithm="HS256")
+
     return {
-        "access_token": utils.create_access_token(
-            str(user.id), expires_delta=access_token_expires
-        ),
+        "access_token": token,
         "token_type": "bearer",
     }

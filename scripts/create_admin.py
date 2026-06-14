@@ -2,6 +2,7 @@ import argparse
 from app.db.session import SessionLocal
 from app import models
 from app.auth.utils import get_password_hash
+from app.services.log_service import LogService
 
 def create_admin(email, password):
     db = SessionLocal()
@@ -19,6 +20,14 @@ def create_admin(email, password):
             nome_completo="Administrador do Sistema"
         )
         db.add(admin_user)
+        
+        # Registra a criação no LogService
+        LogService.log_event(
+            db=db,
+            tipo_evento="admin_criado",
+            descricao=f"Usuário admin {email} criado via script.",
+            usuario_id=admin_user.id
+        )
         db.commit()
         print(f"Usuário administrador {email} criado com sucesso.")
     finally:
