@@ -1,4 +1,5 @@
 from typing import List
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -22,7 +23,7 @@ def read_users(
 
 @router.get("/{user_id}", response_model=schemas.User)
 def read_user_by_id(
-    user_id: int,
+    user_id: UUID,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_active_superuser),
 ):
@@ -36,7 +37,7 @@ def read_user_by_id(
 
 @router.put("/{user_id}", response_model=schemas.User)
 def update_user(
-    user_id: int,
+    user_id: UUID,
     obj_in: schemas.UserUpdate,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_active_superuser),

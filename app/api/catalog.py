@@ -1,4 +1,5 @@
 from typing import List
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -17,7 +18,7 @@ def get_public_catalog(db: Session = Depends(get_db), skip: int = 0, limit: int 
     ).distinct().offset(skip).limit(limit).all()
 
 @router.get("/{pub_id}/vagas", response_model=List[schemas.Vaga])
-def get_publication_vagas(pub_id: int, db: Session = Depends(get_db)):
+def get_publication_vagas(pub_id: UUID, db: Session = Depends(get_db)):
     """
     Lista as vagas disponíveis para uma publicação específica selecionada no catálogo.
     """
