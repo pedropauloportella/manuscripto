@@ -128,7 +128,11 @@ def test_webhook_approved_payment(mock_mp_service, db, client):
     assert compra.id_pagamento_mp == "999888777"
 
     # Verifica se o vínculo de autor foi criado automaticamente
-    vinculo = db.query(models.AutorPublicacao).filter(models.AutorPublicacao.compra_id == compra.id).first()
+    # Como o 'db' é um MagicMock, ele não mantém um estado real do banco de dados.
+    # Verificamos se o objeto AutorPublicacao foi adicionado à sessão via db.add()
+    added_objs = [call.args[0] for call in db.add.call_args_list]
+    vinculo = next((obj for obj in added_objs if isinstance(obj, models.AutorPublicacao)), None)
+
     assert vinculo is not None
     assert vinculo.usuario_id == user.id
     assert vinculo.funcao == "coautor"
