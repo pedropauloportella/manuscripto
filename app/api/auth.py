@@ -76,9 +76,19 @@ async def orcid_callback(code: str, db: Session = Depends(get_db)):
     user = db.query(models.Usuario).filter(models.Usuario.orcid_id == orcid_id).first()
 
     if not user:
-        # Como o ORCID as vezes não retorna email público no token inicial, 
-        # usamos o orcid_id como identificador único ou placeholder
+        user_uuid = None
+        try:
+            # Tenta converter o sub ou orcid_id em UUID se o provedor enviar nesse formato
+            potential_uuid = data.get("sub") or orcid_id
+            if potential_uuid:
+                user_uuid = uuid.UUID(potential_uuid)
+        except (ValueError, TypeError):
+            # Caso não seja um UUID válido (formato padrão do ORCID), 
+            # a Base (SQLAlchemy) gerará um novo UUID automaticamente.
+            pass
+
         user = models.Usuario(
+            id=user_uuid,
             orcid_id=orcid_id,
             nome_completo=nome,
             email=f"{orcid_id}@orcid.org", # Placeholder se email não disponível

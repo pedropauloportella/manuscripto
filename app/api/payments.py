@@ -77,7 +77,10 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                 db_payment.id_pagamento_mp = str(payment_id)
                 
                 vaga = db.query(models.Vaga).filter(models.Vaga.id == db_payment.vaga_id).first()
-                if vaga:
+                
+                # Verificação de segurança: garante que a vaga ainda está disponível
+                # no momento da confirmação do pagamento.
+                if vaga and vaga.quantidade_disponivel > 0:
                     novo_autor = models.AutorPublicacao(
                         usuario_id=db_payment.usuario_id,
                         publicacao_id=vaga.publicacao_id,
@@ -87,14 +90,21 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                     db.add(novo_autor)
                     vaga.quantidade_disponivel -= 1
                 
-                # --- NOVAS FUNCIONALIDADES ---
-                
-                # 1. Enviar Notificação por E-mail
-                email_service.enviar_confirmacao_coautoria(
-                    email_destino=db_payment.usuario.email,
-                    nome_usuario=db_payment.usuario.nome_completo,
-                    titulo_obra=vaga.publicacao.titulo if vaga else "Obra"
-                )
+                    # Notificações e Eventos só ocorrem se o vínculo foi criado
+                    email_service.enviar_confirmacao_coautoria(
+                        email_destino=db_payment.usuario.email,
+                        nome_usuario=db_payment.usuario.nome_completo,
+                        titulo_obra=vaga.publicacao.titulo if vaga and vaga.publicacao else "Obra"
+                    )
+                else:
+                    # Caso a vaga tenha acabado entre o checkout e o webhook (overselling)
+                    # Aqui deveríamos disparar um alerta para estorno manual ou suporte.
+                    LogService.log_event(
+                        db=db,
+                        tipo_evento="erro_vagas_esgotadas",
+                        descricao=f"Pagamento aprovado para Compra {db_payment.id}, mas vagas esgotadas.",
+                        usuario_id=db_payment.usuario_id
+                    )
                 
                 # 2. Publicar evento para outros serviços (Mensageria)
                 evento_dados = {

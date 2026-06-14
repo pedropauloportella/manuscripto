@@ -10,22 +10,26 @@ def processar_eventos():
     print("[WORKER] Iniciando consumidor de eventos...")
     
     while True:
-        # BRPOP remove e retorna o último elemento da lista, bloqueando se estiver vazia
-        # O timeout de 0 significa que ele espera indefinidamente
-        resultado = messaging_service.redis_client.brpop("eventos_compra", timeout=5)
-        
-        if resultado:
-            _, mensagem = resultado
-            dados = json.loads(mensagem)
+        try:
+            # Bloqueia por 5 segundos esperando uma mensagem
+            resultado = messaging_service.redis_client.brpop("eventos_compra", timeout=5)
             
-            print(f"\n[WORKER] >>> Processando Evento Externo")
-            print(f"[WORKER] Compra ID: {dados['compra_id']}")
-            print(f"[WORKER] Usuário ID: {dados['usuario_id']}")
-            print(f"[WORKER] Valor: R$ {dados['valor']}")
-            print(f"[WORKER] Ação: Gerando contrato digital e atualizando dashboard de vendas...")
-            
-            # Simula processamento pesado
-            time.sleep(1)
+            if resultado:
+                _, mensagem = resultado
+                dados = json.loads(mensagem)
+                
+                print(f"[{time.strftime('%H:%M:%S')}] [WORKER] Processando Compra: {dados['compra_id']}")
+                
+                # Lógica de negócio assíncrona (Ex: Integração com ERP ou Gerador de PDF)
+                # ...
+                
+                time.sleep(1) # Simula delay
+                print(f"[WORKER] Sucesso: Evento {dados['compra_id']} processado.")
+
+        except Exception as e:
+            print(f"[WORKER] [ERRO] Falha ao processar evento: {e}")
+            # Espera um pouco antes de tentar novamente para não sobrecarregar em caso de erro de rede
+            time.sleep(5)
 
 if __name__ == "__main__":
     processar_eventos()
