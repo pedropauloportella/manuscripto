@@ -1,9 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from fastapi.testclient import TestClient
 from app.main import app
-
-client = TestClient(app)
 
 @pytest.fixture
 def mock_mp_service():
@@ -28,7 +25,7 @@ def mock_mp_service():
         }
         yield mocked
 
-def test_checkout_endpoint_with_mock(mock_mp_service, db_session):
+def test_checkout_endpoint_with_mock(mock_mp_service, db, client):
     """
     Testa se o endpoint de checkout chama o MercadoPago corretamente via mock.
     """
@@ -43,7 +40,7 @@ def test_checkout_endpoint_with_mock(mock_mp_service, db_session):
     # mock_mp_service.create_payment_link.assert_called_once()
     pass
 
-def test_webhook_approved_payment(mock_mp_service):
+def test_webhook_approved_payment(mock_mp_service, client):
     """
     Testa o processamento do webhook simulando uma aprovação.
     """
