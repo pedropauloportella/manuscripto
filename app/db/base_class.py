@@ -1,6 +1,13 @@
 from typing import Any
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.ext.declarative import as_declarative, declared_attr
 
-class Base(DeclarativeBase):
-    """Classe base para todos os modelos SQLAlchemy, provendo o campo 'id'."""
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+@as_declarative()
+class Base:
+    # Classe base declarativa para todos os modelos do SQLAlchemy.
+    # Fornece id e geração automática do nome da tabela.
+    id: Any
+    __name__: str
+
+    @declared_attr
+    def __tablename__(cls) -> str:
+        return cls.__name__.lower()

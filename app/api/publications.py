@@ -14,12 +14,38 @@ def list_publications(db: Session = Depends(get_db), skip: int = 0, limit: int =
     return db.query(models.Publicacao).offset(skip).limit(limit).all()
 
 @router.post("/", response_model=schemas.Publicacao)
-def create_publication(obj_in: schemas.PublicacaoCreate, db: Session = Depends(get_db)):
-    db_obj = models.Publicacao(**obj_in.dict())
+def create_publication(
+    *,
+    db: Session = Depends(get_db),
+    obj_in: schemas.PublicacaoCreate,
+    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+):
+    """Cria uma nova publicação (Apenas Superusers)."""
+    db_obj = models.Publicacao(**obj_in.model_dump())
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
     return db_obj
+
+@router.put("/{pub_id}", response_model=schemas.Publicacao)
+def update_publication(
+    pub_id: int,
+    obj_in: schemas.PublicacaoUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+):
+    """Atualiza dados da publicação (Apenas Superusers)."""
+    pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
+    if not pub:
+        raise HTTPException(status_code=404, detail="Publicação não encontrada")
+    
+    update_data = obj_in.model_dump(exclude_unset=True)
+    for field in update_data:
+        setattr(pub, field, update_data[field])
+    
+    db.commit()
+    db.refresh(pub)
+    return pub
 
 @router.get("/{pub_id}", response_model=schemas.Publicacao)
 def get_publication(pub_id: int, db: Session = Depends(get_db)):
@@ -29,13 +55,19 @@ def get_publication(pub_id: int, db: Session = Depends(get_db)):
     return pub
 
 @router.post("/{pub_id}/vagas", response_model=schemas.Vaga)
-def create_vaga(pub_id: int, obj_in: schemas.VagaCreate, db: Session = Depends(get_db)):
+def create_vaga(
+    pub_id: int, 
+    obj_in: schemas.VagaCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+):
+    """Cria vagas para venda de coautoria (Apenas Superusers)."""
     # Verifica se a publicação existe
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
     if not pub:
         raise HTTPException(status_code=404, detail="Publicação não encontrada")
     
-    db_vaga = models.Vaga(**obj_in.dict(), publicacao_id=pub_id, quantidade_disponivel=obj_in.quantidade_total)
+    db_vaga = models.Vaga(**obj_in.model_dump(), publicacao_id=pub_id, quantidade_disponivel=obj_in.quantidade_total)
     db.add(db_vaga)
     db.commit()
     db.refresh(db_vaga)

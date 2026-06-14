@@ -1,33 +1,47 @@
-from pydantic import BaseModel, EmailStr
 from typing import Optional, List
+from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
 from decimal import Decimal
 
-# Schemas de Token
+# --- Autenticação e Usuário ---
 class Token(BaseModel):
     access_token: str
     token_type: str
 
-class TokenData(BaseModel):
-    sub: Optional[str] = None
+class TokenPayload(BaseModel):
+    sub: Optional[int] = None
 
-# Schemas de Usuário
 class UserBase(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
     nome_completo: Optional[str] = None
     orcid_id: Optional[str] = None
-
-class UserCreate(UserBase):
-    password: str
+    is_active: bool = True
+    is_superuser: bool = False
 
 class User(UserBase):
     id: int
-    is_active: bool
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+# --- Publicação ---
+class PublicacaoBase(BaseModel):
+    titulo: str
+    subtitulo: Optional[str] = None
+    descricao: Optional[str] = None
+    ano_publicacao: Optional[int] = None
+    tipo: Optional[str] = "livro"
+    issn_isbn: Optional[str] = None
 
-# Schemas de Vaga
+class PublicacaoCreate(PublicacaoBase):
+    pass
+
+class PublicacaoUpdate(PublicacaoBase):
+    titulo: Optional[str] = None
+
+class Publicacao(PublicacaoBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+# --- Vaga ---
 class VagaBase(BaseModel):
     titulo: str
     descricao: Optional[str] = None
@@ -42,48 +56,15 @@ class Vaga(VagaBase):
     publicacao_id: int
     quantidade_disponivel: int
     ativa: bool
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
-
-# Schemas de Publicação
-class PublicacaoBase(BaseModel):
-    titulo: str
-    subtitulo: Optional[str] = None
-    descricao: Optional[str] = None
-    ano_publicacao: int
-    tipo: str # Ex: "livro", "artigo"
-    issn_isbn: Optional[str] = None
-
-class PublicacaoCreate(PublicacaoBase):
-    pass
-
-class Publicacao(PublicacaoBase):
-    id: int
-    vagas: List[Vaga] = []
-
-    class Config:
-        from_attributes = True
-
+# --- Versão ---
 class VersaoBase(BaseModel):
     numero_versao: str
-
-class VersaoCreate(VersaoBase):
-    pass
 
 class Versao(VersaoBase):
     id: int
     publicacao_id: int
-    caminho_arquivo_s3: str
     data_upload: datetime
-
-    class Config:
-        from_attributes = True
-
-class LogEvento(BaseModel):
-    tipo_evento: str
-    descricao: str
-    data_evento: datetime
-    usuario_id: Optional[int] = None
-    entidade_id: Optional[int] = None
-    entidade_tipo: Optional[str] = None
+    caminho_arquivo_s3: str
+    model_config = ConfigDict(from_attributes=True)

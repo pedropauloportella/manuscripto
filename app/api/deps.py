@@ -17,11 +17,14 @@ reusable_oauth2 = OAuth2PasswordBearer(
 def get_current_user(
     db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> models.Usuario:
+    """
+    Valida o token JWT e recupera o usuário atual do banco de dados.
+    """
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[ALGORITHM]
         )
-        token_data = schemas.TokenData(**payload)
+        token_data = schemas.TokenPayload(**payload)
     except (JWTError, ValidationError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -33,3 +36,13 @@ def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Usuário inativo")
     return user
+
+def get_current_active_superuser(
+    current_user: models.Usuario = Depends(get_current_user),
+) -> models.Usuario:
+    """
+    Verifica se o usuário atual tem permissões de administrador.
+    """
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="O usuário não tem privilégios suficientes")
+    return current_user

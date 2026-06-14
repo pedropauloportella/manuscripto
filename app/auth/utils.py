@@ -4,10 +4,14 @@ from jose import jwt
 from passlib.context import CryptContext
 from app.core.config import settings
 
+# Configuração do contexto de criptografia para senhas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ALGORITHM = "HS256"
 
 def create_access_token(subject: Union[str, Any], expires_delta: timedelta = None) -> str:
+    """
+    Cria um token de acesso JWT codificando o ID do usuário (subject).
+    """
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:

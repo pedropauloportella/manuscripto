@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 from app import models
-from typing import Optional
 
 class LogService:
     @staticmethod
@@ -8,9 +7,9 @@ class LogService:
         db: Session,
         tipo_evento: str,
         descricao: str,
-        usuario_id: Optional[int] = None,
-        entidade_id: Optional[int] = None,
-        entidade_tipo: Optional[str] = None
+        usuario_id: int = None,
+        entidade_id: int = None,
+        entidade_tipo: str = None
     ):
         db_log = models.LogEvento(
             tipo_evento=tipo_evento,
@@ -21,4 +20,3 @@ class LogService:
         )
         db.add(db_log)
         db.commit()
-        return db_log
