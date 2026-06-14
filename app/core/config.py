@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     # Banco de Dados
     # Nota: Use a porta 6543, sslmode=require e username 'postgres.[REF-PROJETO]' para o Supabase Pooler
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/editora"
+    DATABASE_URL_TEST: Optional[str] = None
 
     # OAuth
     ORCID_CLIENT_ID: Optional[str] = None

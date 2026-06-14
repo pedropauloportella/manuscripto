@@ -4,11 +4,16 @@ from sqlalchemy.orm import sessionmaker
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.core.config import settings
 from fastapi.testclient import TestClient
+import os
 
-# Usando Postgres para testes para manter paridade com produção.
-# Certifique-se de que o banco 'editora_test' existe ou use uma variável de ambiente.
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/editora_test"
+# 1. Prioridade para variável de env (CI)
+# 2. Fallback para configuração no config.py
+# 3. Fallback para o nome do serviço 'db' do docker-compose
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL_TEST") or \
+                         settings.DATABASE_URL_TEST or \
+                         "postgresql://postgres:postgres@db:5432/editora_test"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -46,7 +46,23 @@ services:
     env_file:
       - .env
     depends_on:
+      - db
       - redis
+    networks:
+      - manuscripto_network
+
+  # Banco de Dados Local para Desenvolvimento e Testes
+  db:
+    image: postgres:15-alphine
+    container_name: manuscripto_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=editora
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - manuscripto_network
 
@@ -66,6 +82,7 @@ services:
 # Define volumes para persistência de dados
 volumes:
   redis_data:    # Volume para dados do Redis
+  postgres_data: # Volume para dados do Postgres
 
 # Define uma rede Docker personalizada para que os serviços possam se comunicar pelo nome
 networks:
