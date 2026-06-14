@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -12,7 +13,7 @@ router = APIRouter()
 
 @router.post("/checkout/{vaga_id}")
 async def create_checkout(
-    vaga_id: int, 
+    vaga_id: UUID, 
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_user)
 ):
@@ -59,7 +60,13 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
         payment_status = payment_info["response"]["status"]
         external_ref = payment_info["response"]["external_reference"]
 
-        db_payment = db.query(models.Compra).filter(models.Compra.id == int(external_ref)).first()
+        try:
+            compra_id = UUID(external_ref)
+        except (ValueError, TypeError):
+            # Caso o external_ref não seja um UUID válido (pode ocorrer em logs antigos)
+            raise HTTPException(status_code=400, detail="ID de referência inválido")
+
+        db_payment = db.query(models.Compra).filter(models.Compra.id == compra_id).first()
         
         if not db_payment:
             raise HTTPException(status_code=404, detail="Compra não encontrada")

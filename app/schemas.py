@@ -59,7 +59,7 @@ class VagaCreate(VagaBase):
 
 class Vaga(VagaBase):
     id: UUID
-    publicacao_id: int
+    publicacao_id: UUID
     quantidade_disponivel: int
     ativa: bool
     model_config = ConfigDict(from_attributes=True)
@@ -70,7 +70,7 @@ class VersaoBase(BaseModel):
 
 class Versao(VersaoBase):
     id: UUID
-    publicacao_id: int
+    publicacao_id: UUID
     data_upload: datetime
     caminho_arquivo_s3: str
     model_config = ConfigDict(from_attributes=True)

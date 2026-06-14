@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 from typing import Any, List
 import httpx
@@ -90,7 +91,7 @@ async def orcid_callback(code: str, db: Session = Depends(get_db)):
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
         "access_token": utils.create_access_token(
-            user.id, expires_delta=access_token_expires
+            str(user.id), expires_delta=access_token_expires
         ),
         "token_type": "bearer",
     }
@@ -140,7 +141,16 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
     user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
 
     if not user:
+        user_uuid = None
+        try:
+            potential_uuid = user_data.get("sub")
+            if potential_uuid:
+                user_uuid = uuid.UUID(potential_uuid)
+        except (ValueError, TypeError):
+            pass
+
         user = models.Usuario(
+            id=user_uuid,
             email=email,
             nome_completo=nome,
             is_active=True
@@ -153,7 +163,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
         "access_token": utils.create_access_token(
-            user.id, expires_delta=access_token_expires
+            str(user.id), expires_delta=access_token_expires
         ),
         "token_type": "bearer",
     }

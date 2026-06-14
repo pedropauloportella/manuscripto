@@ -1,4 +1,5 @@
 from typing import List
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -29,7 +30,7 @@ def create_publication(
 
 @router.put("/{pub_id}", response_model=schemas.Publicacao)
 def update_publication(
-    pub_id: int,
+    pub_id: UUID,
     obj_in: schemas.PublicacaoUpdate,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_active_superuser)
@@ -49,7 +50,7 @@ def update_publication(
 
 @router.delete("/{pub_id}", status_code=204)
 def delete_publication(
-    pub_id: int,
+    pub_id: UUID,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_active_superuser)
 ):
@@ -63,20 +64,20 @@ def delete_publication(
     return None
 
 @router.get("/{pub_id}", response_model=schemas.Publicacao)
-def get_publication(pub_id: int, db: Session = Depends(get_db)):
+def get_publication(pub_id: UUID, db: Session = Depends(get_db)):
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
     if not pub:
         raise HTTPException(status_code=404, detail="Publicação não encontrada")
     return pub
 
 @router.get("/{pub_id}/vagas", response_model=List[schemas.Vaga])
-def list_publication_vagas(pub_id: int, db: Session = Depends(get_db)):
+def list_publication_vagas(pub_id: UUID, db: Session = Depends(get_db)):
     """Lista todas as vagas (ativas ou não) de uma publicação específica."""
     return db.query(models.Vaga).filter(models.Vaga.publicacao_id == pub_id).all()
 
 @router.post("/{pub_id}/vagas", response_model=schemas.Vaga)
 def create_vaga(
-    pub_id: int, 
+    pub_id: UUID, 
     obj_in: schemas.VagaCreate, 
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_active_superuser)
@@ -95,7 +96,7 @@ def create_vaga(
 
 @router.delete("/vagas/{vaga_id}", status_code=204)
 def delete_vaga(
-    vaga_id: int,
+    vaga_id: UUID,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_active_superuser)
 ):
@@ -110,7 +111,7 @@ def delete_vaga(
 
 @router.post("/{pub_id}/versoes", response_model=schemas.Versao)
 def upload_versao(
-    pub_id: int,
+    pub_id: UUID,
     numero_versao: str,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -149,7 +150,7 @@ def upload_versao(
 
 @router.get("/{pub_id}/versoes", response_model=List[schemas.Versao])
 def list_versoes(
-    pub_id: int,
+    pub_id: UUID,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_user)
 ):
@@ -166,8 +167,8 @@ def list_versoes(
 
 @router.get("/{pub_id}/versoes/{versao_id}/download")
 def download_versao(
-    pub_id: int,
-    versao_id: int,
+    pub_id: UUID,
+    versao_id: UUID,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_user)
 ):

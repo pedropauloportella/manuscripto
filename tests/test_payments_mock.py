@@ -23,7 +23,7 @@ def mock_mp_service():
         mocked_mp.get_payment.return_value = {
             "response": {
                 "status": "approved",
-                "external_reference": "1"
+                "external_reference": "00000000-0000-0000-0000-000000000001"
             }
         }
         
