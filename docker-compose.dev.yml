@@ -1,0 +1,57 @@
+# docker-compose.dev.yml
+# Propósito: Orquestrar serviços Docker para o ambiente de desenvolvimento do projeto manuscripto.
+# Este arquivo define e configura os contêineres para a aplicação FastAPI, PostgreSQL, Redis e MinIO.
+# Variáveis de ambiente importantes: Todas as definidas no arquivo .env serão usadas pelo serviço 'app'.
+
+# Define os serviços que compõem a sua aplicação
+services:
+  # Serviço da aplicação FastAPI
+  app:
+    # Constrói a imagem Docker a partir do Dockerfile no diretório atual
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: manuscripto_app # Nome amigável para o contêiner
+    # Mapeia a porta 8000 do host para a porta 8000 do contêiner
+    ports:
+      - "8000:8000"
+    # Monta o diretório atual do host no diretório /app do contêiner.
+    # Isso permite que as alterações no código local sejam refletidas no contêiner
+    # e que o uvicorn com --reload detecte essas mudanças.
+    volumes:
+      - .:/app
+    # Carrega variáveis de ambiente do arquivo .env na raiz do projeto para este serviço
+    env_file:
+      - .env
+    # Adiciona DNS externo para garantir que o container consiga resolver o host do Supabase no Windows
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    # Define que este serviço depende de outros para iniciar.
+    # O Docker Compose tentará iniciá-los primeiro.
+    depends_on:
+      - redis
+    networks:
+      - manuscripto_network
+
+  # Serviço do cache/mensageria Redis
+  redis:
+    image: redis:7-alpine # Imagem oficial do Redis, versão 7, baseada em Alpine
+    container_name: manuscripto_redis
+    # Mapeia a porta 6379 do host para a porta 6379 do contêiner
+    ports:
+      - "6379:6379"
+    # Monta um volume para persistir os dados do Redis (opcional, mas recomendado)
+    volumes:
+      - redis_data:/data
+    networks:
+      - manuscripto_network
+
+# Define volumes para persistência de dados
+volumes:
+  redis_data:    # Volume para dados do Redis
+
+# Define uma rede Docker personalizada para que os serviços possam se comunicar pelo nome
+networks:
+  manuscripto_network:
+    driver: bridge
