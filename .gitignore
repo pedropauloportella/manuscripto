@@ -1,1 +1,7 @@
+__pycache__/
+**/__pycache__/  
+.pytest_cache/
+.pytest_tmpdir/
 .env
+.pyc
+.db

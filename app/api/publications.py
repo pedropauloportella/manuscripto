@@ -1,4 +1,5 @@
 from typing import List
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -14,36 +15,103 @@ def list_publications(db: Session = Depends(get_db), skip: int = 0, limit: int =
     return db.query(models.Publicacao).offset(skip).limit(limit).all()
 
 @router.post("/", response_model=schemas.Publicacao)
-def create_publication(obj_in: schemas.PublicacaoCreate, db: Session = Depends(get_db)):
-    db_obj = models.Publicacao(**obj_in.dict())
+def create_publication(
+    *,
+    db: Session = Depends(get_db),
+    obj_in: schemas.PublicacaoCreate,
+    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+):
+    """Cria uma nova publicação (Apenas Superusers)."""
+    db_obj = models.Publicacao(**obj_in.model_dump())
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
     return db_obj
 
+@router.put("/{pub_id}", response_model=schemas.Publicacao)
+def update_publication(
+    pub_id: UUID,
+    obj_in: schemas.PublicacaoUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+):
+    """Atualiza dados da publicação (Apenas Superusers)."""
+    pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
+    if not pub:
+        raise HTTPException(status_code=404, detail="Publicação não encontrada")
+    
+    update_data = obj_in.model_dump(exclude_unset=True)
+    for field in update_data:
+        setattr(pub, field, update_data[field])
+    
+    db.commit()
+    db.refresh(pub)
+    return pub
+
+@router.delete("/{pub_id}", status_code=204)
+def delete_publication(
+    pub_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+):
+    """Remove uma publicação permanentemente (Apenas Superusers)."""
+    pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
+    if not pub:
+        raise HTTPException(status_code=404, detail="Publicação não encontrada")
+    
+    db.delete(pub)
+    db.commit()
+    return None
+
 @router.get("/{pub_id}", response_model=schemas.Publicacao)
-def get_publication(pub_id: int, db: Session = Depends(get_db)):
+def get_publication(pub_id: UUID, db: Session = Depends(get_db)):
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
     if not pub:
         raise HTTPException(status_code=404, detail="Publicação não encontrada")
     return pub
 
+@router.get("/{pub_id}/vagas", response_model=List[schemas.Vaga])
+def list_publication_vagas(pub_id: UUID, db: Session = Depends(get_db)):
+    """Lista todas as vagas (ativas ou não) de uma publicação específica."""
+    return db.query(models.Vaga).filter(models.Vaga.publicacao_id == pub_id).all()
+
 @router.post("/{pub_id}/vagas", response_model=schemas.Vaga)
-def create_vaga(pub_id: int, obj_in: schemas.VagaCreate, db: Session = Depends(get_db)):
+def create_vaga(
+    pub_id: UUID, 
+    obj_in: schemas.VagaCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+):
+    """Cria vagas para venda de coautoria (Apenas Superusers)."""
     # Verifica se a publicação existe
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
     if not pub:
         raise HTTPException(status_code=404, detail="Publicação não encontrada")
     
-    db_vaga = models.Vaga(**obj_in.dict(), publicacao_id=pub_id, quantidade_disponivel=obj_in.quantidade_total)
+    db_vaga = models.Vaga(**obj_in.model_dump(), publicacao_id=pub_id, quantidade_disponivel=obj_in.quantidade_total)
     db.add(db_vaga)
     db.commit()
     db.refresh(db_vaga)
     return db_vaga
 
+@router.delete("/vagas/{vaga_id}", status_code=204)
+def delete_vaga(
+    vaga_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+):
+    """Remove uma vaga específica (Apenas Superusers)."""
+    vaga = db.query(models.Vaga).filter(models.Vaga.id == vaga_id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    
+    db.delete(vaga)
+    db.commit()
+    return None
+
 @router.post("/{pub_id}/versoes", response_model=schemas.Versao)
 def upload_versao(
-    pub_id: int,
+    pub_id: UUID,
     numero_versao: str,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -82,7 +150,7 @@ def upload_versao(
 
 @router.get("/{pub_id}/versoes", response_model=List[schemas.Versao])
 def list_versoes(
-    pub_id: int,
+    pub_id: UUID,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_user)
 ):
@@ -99,8 +167,8 @@ def list_versoes(
 
 @router.get("/{pub_id}/versoes/{versao_id}/download")
 def download_versao(
-    pub_id: int,
-    versao_id: int,
+    pub_id: UUID,
+    versao_id: UUID,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_user)
 ):

@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -5,12 +6,14 @@ from app import models, schemas
 from app.api import deps
 from app.services.mercadopago_service import mp_service
 from app.services.log_service import LogService
+from app.services.email_service import email_service
+from app.services.messaging_service import messaging_service
 
 router = APIRouter()
 
 @router.post("/checkout/{vaga_id}")
 async def create_checkout(
-    vaga_id: int, 
+    vaga_id: UUID, 
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(deps.get_current_user)
 ):
@@ -53,14 +56,23 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
     payment_id = data.get("data", {}).get("id") or request.query_params.get("data.id")
     
     if data.get("type") == "payment" and payment_id:
-        payment_info = mp_service.sdk.payment().get(payment_id)
+        payment_info = mp_service.get_payment(str(payment_id))
         payment_status = payment_info["response"]["status"]
         external_ref = payment_info["response"]["external_reference"]
 
+        try:
+            compra_id = UUID(external_ref)
+        except (ValueError, TypeError):
+            # Caso o external_ref não seja um UUID válido (pode ocorrer em logs antigos)
+            raise HTTPException(status_code=400, detail="ID de referência inválido")
+
+        db_payment = db.query(models.Compra).filter(models.Compra.id == compra_id).first()
+        
+        if not db_payment:
+            raise HTTPException(status_code=404, detail="Compra não encontrada")
+
         if payment_status == "approved":
-            db_payment = db.query(models.Compra).filter(models.Compra.id == int(external_ref)).first()
-            
-            if db_payment and db_payment.status != "aprovada":
+            if db_payment.status != "aprovada":
                 db_payment.status = "aprovada"
                 db_payment.id_pagamento_mp = str(payment_id)
                 
@@ -75,15 +87,38 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                     db.add(novo_autor)
                     vaga.quantidade_disponivel -= 1
                 
-                db.commit()
-
-                LogService.log_event(
-                    db=db,
-                    tipo_evento="compra_aprovada",
-                    descricao=f"Pagamento aprovado para a compra {db_payment.id}",
-                    usuario_id=db_payment.usuario_id,
-                    entidade_id=db_payment.id,
-                    entidade_tipo="Compra"
+                # --- NOVAS FUNCIONALIDADES ---
+                
+                # 1. Enviar Notificação por E-mail
+                email_service.enviar_confirmacao_coautoria(
+                    email_destino=db_payment.usuario.email,
+                    nome_usuario=db_payment.usuario.nome_completo,
+                    titulo_obra=vaga.publicacao.titulo if vaga else "Obra"
                 )
+                
+                # 2. Publicar evento para outros serviços (Mensageria)
+                evento_dados = {
+                    "compra_id": db_payment.id,
+                    "usuario_id": db_payment.usuario_id,
+                    "publicacao_id": vaga.publicacao_id if vaga else None,
+                    "valor": float(db_payment.valor_pago),
+                    "status": "aprovada"
+                }
+                messaging_service.publicar_evento_compra(evento_dados)
+                
+                db.commit()
+        
+        elif payment_status in ["rejected", "cancelled", "refunded"]:
+            db_payment.status = payment_status
+            db.commit()
+
+        LogService.log_event(
+            db=db,
+            tipo_evento=f"pagamento_{payment_status}",
+            descricao=f"Webhook recebido: Status {payment_status} para compra {db_payment.id}",
+            usuario_id=db_payment.usuario_id,
+            entidade_id=db_payment.id,
+            entidade_tipo="Compra"
+        )
 
     return {"status": "ok"}
