@@ -19,6 +19,10 @@ class UserBase(BaseModel):
     is_active: bool = True
     is_superuser: bool = False
 
+class UserCreate(UserBase):
+    email: EmailStr
+    password: str
+
 class UserUpdate(BaseModel):
     nome_completo: Optional[str] = None
     is_active: Optional[bool] = None

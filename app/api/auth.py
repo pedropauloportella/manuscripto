@@ -79,7 +79,7 @@ async def orcid_callback(code: str, db: Session = Depends(get_db)):
                 "client_id": settings.ORCID_CLIENT_ID,
                 "client_secret": settings.ORCID_CLIENT_SECRET,
                 "grant_type": "authorization_code",
-                "redirect_uri": f"http://localhost:8000{settings.API_V1_STR}/auth/orcid/callback",
+                "redirect_uri": f"{settings.API_BASE_URL}{settings.API_V1_STR}/auth/orcid/callback",
                 "code": code,
             },
             headers={"Accept": "application/json"}
@@ -166,7 +166,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
                 "client_secret": settings.GOOGLE_CLIENT_SECRET,
                 "code": code,
                 "grant_type": "authorization_code",
-                "redirect_uri": f"http://localhost:8000{settings.API_V1_STR}/auth/google/callback",
+                "redirect_uri": f"{settings.API_BASE_URL}{settings.API_V1_STR}/auth/google/callback",
             },
         )
 

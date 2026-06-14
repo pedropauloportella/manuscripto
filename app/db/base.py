@@ -1,3 +1,3 @@
-# Importa a Base e todos os modelos para que o SQLAlchemy/Alembic os reconheça
-from app.db.base_class import Base
-from app.models import Usuario, Publicacao, Vaga, Compra, AutorPublicacao, Versao, LogEvento
+# Importe todos os modelos aqui para que o Alembic possa detectá-los
+from app.db.base_class import Base  # noqa
+from app.models import Usuario, Publicacao, Vaga, Compra, AutorPublicacao, Versao, LogEvento  # noqa
