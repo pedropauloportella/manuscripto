@@ -1,28 +1,29 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api import auth, publications, payments, catalog
 from app.core.config import settings
-import app.api.payments as payments
-import app.api.publications as publications
-from app.api import auth
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    description="API para gestão editorial e coautoria do Manuscripto",
+    version="0.1.0"
 )
 
+# Configuração de CORS para permitir que o frontend (Vite/React) acesse a API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Ajustar para o domínio do React em produção
+    allow_origins=["*"],  # Em produção, deve ser limitado ao domínio do frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Incluindo as rotas de pagamento
-app.include_router(payments.router, prefix=f"{settings.API_V1_STR}/payments", tags=["payments"])
-app.include_router(publications.router, prefix=f"{settings.API_V1_STR}/publications", tags=["publications"])
-app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+# Inclusão dos módulos de rotas
+app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["Autenticação"])
+app.include_router(catalog.router, prefix=f"{settings.API_V1_STR}/catalog", tags=["Catálogo Público"])
+app.include_router(publications.router, prefix=f"{settings.API_V1_STR}/publications", tags=["Publicações"])
+app.include_router(payments.router, prefix=f"{settings.API_V1_STR}/payments", tags=["Pagamentos"])
 
 @app.get("/")
-async def root():
-    return {"message": "Bem-vindo ao Manuscripto API"}
+def root():
+    return {"message": "Bem-vindo à API do Manuscripto", "docs": "/docs"}

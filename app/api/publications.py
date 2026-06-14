@@ -47,12 +47,32 @@ def update_publication(
     db.refresh(pub)
     return pub
 
+@router.delete("/{pub_id}", status_code=204)
+def delete_publication(
+    pub_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+):
+    """Remove uma publicação permanentemente (Apenas Superusers)."""
+    pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
+    if not pub:
+        raise HTTPException(status_code=404, detail="Publicação não encontrada")
+    
+    db.delete(pub)
+    db.commit()
+    return None
+
 @router.get("/{pub_id}", response_model=schemas.Publicacao)
 def get_publication(pub_id: int, db: Session = Depends(get_db)):
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
     if not pub:
         raise HTTPException(status_code=404, detail="Publicação não encontrada")
     return pub
+
+@router.get("/{pub_id}/vagas", response_model=List[schemas.Vaga])
+def list_publication_vagas(pub_id: int, db: Session = Depends(get_db)):
+    """Lista todas as vagas (ativas ou não) de uma publicação específica."""
+    return db.query(models.Vaga).filter(models.Vaga.publicacao_id == pub_id).all()
 
 @router.post("/{pub_id}/vagas", response_model=schemas.Vaga)
 def create_vaga(
@@ -72,6 +92,21 @@ def create_vaga(
     db.commit()
     db.refresh(db_vaga)
     return db_vaga
+
+@router.delete("/vagas/{vaga_id}", status_code=204)
+def delete_vaga(
+    vaga_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+):
+    """Remove uma vaga específica (Apenas Superusers)."""
+    vaga = db.query(models.Vaga).filter(models.Vaga.id == vaga_id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    
+    db.delete(vaga)
+    db.commit()
+    return None
 
 @router.post("/{pub_id}/versoes", response_model=schemas.Versao)
 def upload_versao(
