@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import patch
+import uuid
+from unittest.mock import patch, MagicMock
 from app.main import app
 from app import models
 
@@ -33,18 +34,21 @@ def test_checkout_endpoint_with_mock(mock_mp_service, db, client):
     """
     Testa se o endpoint de checkout chama o MercadoPago corretamente via mock.
     """
-    # 1. Cria dados necessários no banco de teste
-    user = models.Usuario(email="user@test.com", nome_completo="Test User", is_active=True)
-    db.add(user)
-    db.commit()
+    # Como usamos Mocks, precisamos gerar os UUIDs manualmente para as URLs e relacionamentos
+    user = models.Usuario(id=uuid.uuid4(), email="user@test.com", nome_completo="Test User", is_active=True)
+    pub = models.Publicacao(id=uuid.uuid4(), titulo="Livro Teste")
+    vaga = models.Vaga(
+        id=uuid.uuid4(), 
+        publicacao_id=pub.id, 
+        titulo="Vaga Teste", 
+        preco=100.0, 
+        quantidade_total=5, 
+        quantidade_disponivel=5,
+        ativa=True
+    )
     
-    pub = models.Publicacao(titulo="Livro Teste")
-    db.add(pub)
-    db.commit()
-    
-    vaga = models.Vaga(publicacao_id=pub.id, titulo="Vaga Teste", preco=100.0, quantidade_total=5, quantidade_disponivel=5)
-    db.add(vaga)
-    db.commit()
+    # Configura o mock do banco para retornar a vaga na consulta do checkout
+    db.query.return_value.filter.return_value.first.return_value = vaga
 
     # 2. Mock de autenticação (override do get_current_user)
     from app.api.deps import get_current_user
@@ -65,23 +69,39 @@ def test_webhook_approved_payment(mock_mp_service, db, client):
     """
     Testa o processamento do webhook simulando uma aprovação.
     """
-    # 1. Cria os registros necessários no banco para evitar o erro 404
-    user = models.Usuario(email="autor@test.com", nome_completo="Autor Teste", is_active=True)
-    db.add(user)
-    db.commit()
+    # 1. Cria os registros com IDs e relacionamentos preenchidos manualmente
+    user = models.Usuario(id=uuid.uuid4(), email="autor@test.com", nome_completo="Autor Teste", is_active=True)
+    pub = models.Publicacao(id=uuid.uuid4(), titulo="Obra Cientifica")
+    vaga = models.Vaga(
+        id=uuid.uuid4(), 
+        publicacao_id=pub.id, 
+        titulo="Coautoria", 
+        preco=500.0, 
+        quantidade_total=2, 
+        quantidade_disponivel=2
+    )
+    vaga.publicacao = pub # Necessário para o EmailService no webhook
 
-    pub = models.Publicacao(titulo="Obra Cientifica")
-    db.add(pub)
-    db.commit()
+    compra = models.Compra(
+        id=uuid.uuid4(), 
+        usuario_id=user.id, 
+        vaga_id=vaga.id, 
+        valor_pago=500.0, 
+        status="pendente"
+    )
+    compra.usuario = user # Necessário para acessar db_payment.usuario.email
+    compra.vaga = vaga
 
-    vaga = models.Vaga(publicacao_id=pub.id, titulo="Coautoria", preco=500.0, quantidade_total=2, quantidade_disponivel=2)
-    db.add(vaga)
-    db.commit()
+    # Mock para lidar com múltiplas consultas de modelos diferentes (Compra e Vaga)
+    def mock_query_side_effect(model):
+        query_mock = MagicMock()
+        if model == models.Compra:
+            query_mock.filter.return_value.first.return_value = compra
+        elif model == models.Vaga:
+            query_mock.filter.return_value.first.return_value = vaga
+        return query_mock
 
-    compra = models.Compra(usuario_id=user.id, vaga_id=vaga.id, valor_pago=500.0, status="pendente")
-    db.add(compra)
-    db.commit()
-    db.refresh(compra)
+    db.query.side_effect = mock_query_side_effect
 
     # 2. Ajusta o mock para retornar o ID real da compra criada no banco de teste
     mock_mp_service.get_payment.return_value = {
