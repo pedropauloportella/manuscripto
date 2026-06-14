@@ -20,7 +20,7 @@ class MercadoPagoService:
                 }
             ],
             "external_reference": str(payment_id),
-            "notification_url": "https://seu-dominio.com/api/v1/payments/webhook", # Ajustar p/ prod
+            "notification_url": f"{settings.API_BASE_URL}{settings.API_V1_STR}/payments/webhook",
         }
         preference_response = self.sdk.preference().create(preference_data)
         return preference_response["response"]

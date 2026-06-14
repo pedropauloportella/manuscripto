@@ -34,6 +34,22 @@ services:
     networks:
       - manuscripto_network
 
+  # Worker assíncrono para processar eventos do Redis
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: manuscripto_worker
+    command: python scripts/worker.py
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - manuscripto_network
+
   # Serviço do cache/mensageria Redis
   redis:
     image: redis:7-alpine # Imagem oficial do Redis, versão 7, baseada em Alpine

@@ -59,10 +59,13 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
         payment_status = payment_info["response"]["status"]
         external_ref = payment_info["response"]["external_reference"]
 
+        db_payment = db.query(models.Compra).filter(models.Compra.id == int(external_ref)).first()
+        
+        if not db_payment:
+            raise HTTPException(status_code=404, detail="Compra não encontrada")
+
         if payment_status == "approved":
-            db_payment = db.query(models.Compra).filter(models.Compra.id == int(external_ref)).first()
-            
-            if db_payment and db_payment.status != "aprovada":
+            if db_payment.status != "aprovada":
                 db_payment.status = "aprovada"
                 db_payment.id_pagamento_mp = str(payment_id)
                 
@@ -97,14 +100,18 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                 messaging_service.publicar_evento_compra(evento_dados)
                 
                 db.commit()
+        
+        elif payment_status in ["rejected", "cancelled", "refunded"]:
+            db_payment.status = payment_status
+            db.commit()
 
-                LogService.log_event(
-                    db=db,
-                    tipo_evento="compra_aprovada",
-                    descricao=f"Pagamento aprovado para a compra {db_payment.id}",
-                    usuario_id=db_payment.usuario_id,
-                    entidade_id=db_payment.id,
-                    entidade_tipo="Compra"
-                )
+        LogService.log_event(
+            db=db,
+            tipo_evento=f"pagamento_{payment_status}",
+            descricao=f"Webhook recebido: Status {payment_status} para compra {db_payment.id}",
+            usuario_id=db_payment.usuario_id,
+            entidade_id=db_payment.id,
+            entidade_tipo="Compra"
+        )
 
     return {"status": "ok"}
