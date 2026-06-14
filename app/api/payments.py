@@ -55,7 +55,7 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
     payment_id = data.get("data", {}).get("id") or request.query_params.get("data.id")
     
     if data.get("type") == "payment" and payment_id:
-        payment_info = mp_service.sdk.payment().get(payment_id)
+        payment_info = mp_service.get_payment(str(payment_id))
         payment_status = payment_info["response"]["status"]
         external_ref = payment_info["response"]["external_reference"]
 
