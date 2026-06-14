@@ -59,20 +59,24 @@ cp .env.example .env
 
 Preencha as variáveis `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `MERCADOPAGO_ACCESS_TOKEN`, `JWT_SECRET` e `GOOGLE_OAUTH_*` com os valores corretos.
 
-### 2. Configuração do ORCID OAuth
+### 2. Configuração de Autenticação (Supabase & OAuth)
 
-Para que o login via ORCID funcione, você precisará registrar uma aplicação no portal de desenvolvedores do ORCID (developer.orcid.org).
+1.  **JWT do Supabase:** Obtenha a `JWT Secret` em *Settings -> API* no painel do Supabase e adicione ao `.env` como `SUPABASE_JWT_SECRET`. Isso permite que o FastAPI valide tokens emitidos pelo Supabase.
+2.  **ORCID OAuth:** Registre uma aplicação em ORCID Developer. Configure a Redirect URI para `{URL_DA_API}/api/v1/auth/orcid/callback`.
+3.  **Google OAuth:** Configure as credenciais no Google Cloud Console e aponte a Redirect URI para `{URL_DA_API}/api/v1/auth/google/callback`.
 
-1.  **Registre sua aplicação ORCID:** Acesse [ORCID Developer](https://developer.orcid.org/distribute/register-a-client/) e crie uma nova aplicação cliente.
-2.  **Redirect URI:** Configure a "Redirect URI" para `http://localhost:8000/api/auth/orcid/callback`. Se você estiver usando `ngrok` ou similar para expor seu ambiente de desenvolvimento, ajuste esta URL de acordo (e.g., `https://your-ngrok-subdomain.ngrok.io/api/auth/orcid/callback`).
-3.  **Credenciais:** Obtenha seu `Client ID` e `Client Secret` e adicione-os ao seu arquivo `.env`.
+### 3. Configuração do MercadoPago (Webhook)
 
-### 3. Configuração do MercadoPago Sandbox
+Para receber notificações de pagamento em ambiente local:
+1.  Use o **ngrok** para expor a porta `8000`.
+2.  Configure a `API_BASE_URL` no `.env` com a URL do ngrok.
+3.  O endpoint de Webhook é `/api/v1/payments/webhook`.
 
-1.  **Crie uma conta sandbox no MercadoPago:** Acesse [MercadoPago Developers](https://www.mercadopago.com.br/developers/panel/sandbox) e crie usuários de teste.
-2.  **Obtenha o Access Token:** No painel de desenvolvedores, crie um "Access Token" para o ambiente de sandbox e adicione-o ao seu arquivo `.env`.
+### 4. Armazenamento (S3)
 
-### 4. Executando com Docker Compose
+As chaves de acesso ao S3 devem ser obtidas no painel do Supabase em *Project Settings -> Storage*.
+
+### 5. Executando com Docker Compose
 
 Certifique-se de ter o Docker Desktop instalado e rodando. No Windows, prefira usar o PowerShell.
 
