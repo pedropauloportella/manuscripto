@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Numeric, Boolean, DateTime, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.base_class import Base
@@ -13,6 +14,7 @@ class Usuario(Base):
     is_superuser = Column(Boolean, default=False)
     
     publicacoes = relationship("AutorPublicacao", back_populates="usuario")
+    compras = relationship("Compra", back_populates="usuario")
     logs = relationship("LogEvento", back_populates="usuario")
 
 class Publicacao(Base):
@@ -30,7 +32,7 @@ class Publicacao(Base):
 
 class Vaga(Base):
     __tablename__ = "vaga"
-    publicacao_id = Column(Integer, ForeignKey("publicacao.id"))
+    publicacao_id = Column(UUID(as_uuid=True), ForeignKey("publicacao.id"))
     titulo = Column(String, nullable=False)
     descricao = Column(Text)
     preco = Column(Numeric(10, 2), nullable=False)
@@ -42,19 +44,22 @@ class Vaga(Base):
 
 class Compra(Base):
     __tablename__ = "compra"
-    usuario_id = Column(Integer, ForeignKey("usuario.id"))
-    vaga_id = Column(Integer, ForeignKey("vaga.id"))
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuario.id"))
+    vaga_id = Column(UUID(as_uuid=True), ForeignKey("vaga.id"))
     data_compra = Column(DateTime, default=datetime.utcnow)
     valor_pago = Column(Numeric(10, 2))
     status = Column(String) # pendente, aprovada, cancelada
     mp_preference_id = Column(String, index=True)
     id_pagamento_mp = Column(String)
+    
+    usuario = relationship("Usuario", back_populates="compras")
+    vaga = relationship("Vaga")
 
 class AutorPublicacao(Base):
     __tablename__ = "autor_publicacao"
-    usuario_id = Column(Integer, ForeignKey("usuario.id"))
-    publicacao_id = Column(Integer, ForeignKey("publicacao.id"))
-    compra_id = Column(Integer, ForeignKey("compra.id"), nullable=True)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuario.id"))
+    publicacao_id = Column(UUID(as_uuid=True), ForeignKey("publicacao.id"))
+    compra_id = Column(UUID(as_uuid=True), ForeignKey("compra.id"), nullable=True)
     funcao = Column(String) # autor, coautor, organizador
     
     usuario = relationship("Usuario", back_populates="publicacoes")
@@ -62,7 +67,7 @@ class AutorPublicacao(Base):
 
 class Versao(Base):
     __tablename__ = "versao"
-    publicacao_id = Column(Integer, ForeignKey("publicacao.id"))
+    publicacao_id = Column(UUID(as_uuid=True), ForeignKey("publicacao.id"))
     numero_versao = Column(String, nullable=False)
     data_upload = Column(DateTime, default=datetime.utcnow)
     caminho_arquivo_s3 = Column(String, nullable=False)
@@ -74,8 +79,8 @@ class LogEvento(Base):
     tipo_evento = Column(String, nullable=False) # login, upload, compra, etc.
     descricao = Column(Text)
     data_evento = Column(DateTime, default=datetime.utcnow)
-    usuario_id = Column(Integer, ForeignKey("usuario.id"), nullable=True)
-    entidade_id = Column(Integer, nullable=True) # ID da vaga, publicacao, etc.
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuario.id"), nullable=True)
+    entidade_id = Column(UUID(as_uuid=True), nullable=True) # ID da vaga, publicacao, etc.
     entidade_tipo = Column(String, nullable=True)
     
     usuario = relationship("Usuario", back_populates="logs")

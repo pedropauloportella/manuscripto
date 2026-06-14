@@ -1,4 +1,5 @@
-from typing import Optional, List
+from typing import Optional, List, Union
+from uuid import UUID
 from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
 from decimal import Decimal
@@ -9,7 +10,7 @@ class Token(BaseModel):
     token_type: str
 
 class TokenPayload(BaseModel):
-    sub: Optional[int] = None
+    sub: Optional[str] = None
 
 class UserBase(BaseModel):
     email: Optional[EmailStr] = None
@@ -24,7 +25,7 @@ class UserUpdate(BaseModel):
     is_superuser: Optional[bool] = None
 
 class User(UserBase):
-    id: int
+    id: UUID
     model_config = ConfigDict(from_attributes=True)
 
 # --- Publicação ---
@@ -43,7 +44,7 @@ class PublicacaoUpdate(PublicacaoBase):
     titulo: Optional[str] = None
 
 class Publicacao(PublicacaoBase):
-    id: int
+    id: UUID
     model_config = ConfigDict(from_attributes=True)
 
 # --- Vaga ---
@@ -57,7 +58,7 @@ class VagaCreate(VagaBase):
     pass
 
 class Vaga(VagaBase):
-    id: int
+    id: UUID
     publicacao_id: int
     quantidade_disponivel: int
     ativa: bool
@@ -68,7 +69,7 @@ class VersaoBase(BaseModel):
     numero_versao: str
 
 class Versao(VersaoBase):
-    id: int
+    id: UUID
     publicacao_id: int
     data_upload: datetime
     caminho_arquivo_s3: str
