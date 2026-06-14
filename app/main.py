@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, publications, payments, catalog, users
@@ -27,4 +28,8 @@ app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["G
 
 @app.get("/")
 def root():
-    return {"message": "Bem-vindo à API do Manuscripto", "docs": "/docs"}
+    return {
+        "message": "Bem-vindo à API do Manuscripto",
+        "docs": "/docs",
+        "data_atual": datetime.now()
+    }

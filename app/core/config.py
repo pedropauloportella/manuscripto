@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     S3_BUCKET: str = "manuscripto"
     S3_REGION: str = "sa-east-1"
 
+    # Redis (Mensageria)
+    REDIS_HOST: str = "redis"
+    REDIS_PORT: int = 6379
+
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -5,6 +5,8 @@ from app import models, schemas
 from app.api import deps
 from app.services.mercadopago_service import mp_service
 from app.services.log_service import LogService
+from app.services.email_service import email_service
+from app.services.messaging_service import messaging_service
 
 router = APIRouter()
 
@@ -74,6 +76,25 @@ async def mp_webhook(request: Request, db: Session = Depends(get_db)):
                     )
                     db.add(novo_autor)
                     vaga.quantidade_disponivel -= 1
+                
+                # --- NOVAS FUNCIONALIDADES ---
+                
+                # 1. Enviar Notificação por E-mail
+                email_service.enviar_confirmacao_coautoria(
+                    email_destino=db_payment.usuario.email,
+                    nome_usuario=db_payment.usuario.nome_completo,
+                    titulo_obra=vaga.publicacao.titulo if vaga else "Obra"
+                )
+                
+                # 2. Publicar evento para outros serviços (Mensageria)
+                evento_dados = {
+                    "compra_id": db_payment.id,
+                    "usuario_id": db_payment.usuario_id,
+                    "publicacao_id": vaga.publicacao_id if vaga else None,
+                    "valor": float(db_payment.valor_pago),
+                    "status": "aprovada"
+                }
+                messaging_service.publicar_evento_compra(evento_dados)
                 
                 db.commit()
 
