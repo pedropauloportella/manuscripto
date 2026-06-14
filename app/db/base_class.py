@@ -5,8 +5,8 @@ from sqlalchemy.ext.declarative import as_declarative, declared_attr
 @as_declarative()
 class Base:
     # Classe base declarativa para todos os modelos do SQLAlchemy.
-    # Fornece id como UUID e geração automática do nome da tabela compatível com SQLite e Postgres.
-    # default=uuid.uuid4 garante a geração de um identificador único.
+    # Como não usamos SQLite, usamos o UUID nativo do SQLAlchemy que mapeia para UUID no Postgres.
+    # default=uuid.uuid4 garante a geração automática no servidor de aplicação.
     id = Column(UUID, primary_key=True, default=uuid.uuid4, index=True)
     __name__: str
 

@@ -6,12 +6,11 @@ from app.db.session import get_db
 from app.main import app
 from fastapi.testclient import TestClient
 
-# Banco SQLite em memória para testes rápidos
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+# Usando Postgres para testes para manter paridade com produção.
+# Certifique-se de que o banco 'editora_test' existe ou use uma variável de ambiente.
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/editora_test"
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @pytest.fixture(scope="session", autouse=True)
