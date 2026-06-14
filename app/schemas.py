@@ -18,6 +18,11 @@ class UserBase(BaseModel):
     is_active: bool = True
     is_superuser: bool = False
 
+class UserUpdate(BaseModel):
+    nome_completo: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_superuser: Optional[bool] = None
+
 class User(UserBase):
     id: int
     model_config = ConfigDict(from_attributes=True)

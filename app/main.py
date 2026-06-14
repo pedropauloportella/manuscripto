@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth, publications, payments, catalog
+from app.api import auth, publications, payments, catalog, users
 from app.core.config import settings
 
 app = FastAPI(
@@ -23,6 +23,7 @@ app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["Aut
 app.include_router(catalog.router, prefix=f"{settings.API_V1_STR}/catalog", tags=["Catálogo Público"])
 app.include_router(publications.router, prefix=f"{settings.API_V1_STR}/publications", tags=["Publicações"])
 app.include_router(payments.router, prefix=f"{settings.API_V1_STR}/payments", tags=["Pagamentos"])
+app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["Gestão de Usuários"])
 
 @app.get("/")
 def root():
