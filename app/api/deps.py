@@ -1,5 +1,6 @@
 from typing import Generator
 from fastapi import Depends, HTTPException, status
+from uuid import UUID
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
@@ -30,7 +31,7 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Não foi possível validar as credenciais",
         )
-    user = db.query(models.Usuario).filter(models.Usuario.id == int(token_data.sub)).first()
+    user = db.query(models.Usuario).filter(models.Usuario.id == UUID(token_data.sub)).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     if not user.is_active:
