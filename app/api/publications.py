@@ -1,5 +1,4 @@
 from typing import List
-from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -7,6 +6,7 @@ from app import models, schemas
 from app.api import deps
 from app.services.storage import storage_service
 from app.services.log_service import LogService
+from uuid import UUID
 
 router = APIRouter()
 
@@ -39,7 +39,7 @@ def update_publication(
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
     if not pub:
         raise HTTPException(status_code=404, detail="Publicação não encontrada")
-    
+
     update_data = obj_in.model_dump(exclude_unset=True)
     for field in update_data:
         setattr(pub, field, update_data[field])
@@ -63,12 +63,12 @@ def delete_publication(
     db.commit()
     return None
 
-@router.get("/{pub_id}", response_model=schemas.Publicacao)
-def get_publication(pub_id: UUID, db: Session = Depends(get_db)):
-    pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
-    if not pub:
+@router.get("/{id}", response_model=schemas.Publicacao)
+def read_publication(id: UUID, db: Session = Depends(get_db)):
+    db_pub = db.query(models.Publicacao).filter(models.Publicacao.id == id).first()
+    if not db_pub:
         raise HTTPException(status_code=404, detail="Publicação não encontrada")
-    return pub
+    return db_pub
 
 @router.get("/{pub_id}/vagas", response_model=List[schemas.Vaga])
 def list_publication_vagas(pub_id: UUID, db: Session = Depends(get_db)):

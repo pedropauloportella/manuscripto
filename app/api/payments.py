@@ -7,40 +7,13 @@ from app.db.session import get_db
 from app import models, schemas
 from app.api import deps
 from app.core.config import settings
+from app.services.mercadopago_service import mp_service
+# Importe os serviços reais quando estiverem implementados em seus respectivos arquivos
+# from app.services.email_service import email_service 
+# from app.services.messaging_service import messaging_service
 
 router = APIRouter()
 redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True)
-
-# --- Serviços de Suporte (Placeholders para o Service Layer) ---
-class MercadoPagoService:
-    def create_payment_link(self, vaga: models.Vaga, user_id: UUID):
-        # Aqui viria a integração real com o SDK do MercadoPago
-        return {
-            "init_point": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=simulated",
-            "id": "simulated_id"
-        }
-    
-    def get_payment(self, payment_id: str):
-        # Simulação de consulta à API do MP para validar o status
-        return {
-            "response": {
-                "status": "approved",
-                "external_reference": "uuid-da-compra-aqui"
-            }
-        }
-
-class EmailService:
-    def send_confirmation(self, email: str, pub_titulo: str):
-        pass
-
-class MessagingService:
-    def publish_purchase_event(self, event_data: dict):
-        redis_client.publish("eventos_compra", json.dumps(event_data))
-
-# Instâncias globais para permitir o mock nos testes
-mp_service = MercadoPagoService()
-email_service = EmailService()
-messaging_service = MessagingService()
 
 @router.post("/checkout/{vaga_id}")
 def create_checkout(
@@ -64,12 +37,13 @@ def create_checkout(
     db.refresh(compra)
 
     # 2. Gera a preferência no MercadoPago via serviço
-    preference = mp_service.create_payment_link(vaga, current_user.id)
+    # Nota: Ajustado para usar os parâmetros esperados pelo MercadoPagoService real
+    preference = mp_service.create_payment_link(vaga.titulo, float(vaga.preco), str(compra.id))
     
     return {
         "init_point": preference["init_point"],
         "preference_id": preference["id"],
-        "external_reference": str(compra.id) # Vinculamos o ID da nossa Compra à ref do MP
+        "external_reference": str(compra.id)
     }
 
 @router.post("/webhook")
@@ -100,8 +74,9 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
                 db.add(vinculo)
                 
                 # 3. Notificações e Side-effects
-                email_service.send_confirmation(compra.usuario.email, compra.vaga.publicacao.titulo)
-                messaging_service.publish_purchase_event({"compra_id": str(compra.id), "status": "approved"})
+                # Aqui você chamaria os serviços reais importados
+                # email_service.send_confirmation(compra.usuario.email, compra.vaga.publicacao.titulo)
+                redis_client.publish("eventos_compra", json.dumps({"compra_id": str(compra.id), "status": "approved"}))
                 
                 db.commit()
 

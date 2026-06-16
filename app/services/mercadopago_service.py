@@ -1,4 +1,5 @@
 import mercadopago
+from typing import Union
 from app.core.config import settings
 
 class MercadoPagoService:
@@ -9,7 +10,7 @@ class MercadoPagoService:
         token = settings.MERCADOPAGO_ACCESS_TOKEN or ""
         self.sdk = mercadopago.SDK(token)
 
-    def create_payment_link(self, title: str, price: float, payment_id: int):
+    def create_payment_link(self, title: str, price: float, payment_id: Union[str, int]):
         """
         Cria um link de pagamento. 
         O 'external_reference' vincula o ID do nosso banco ao MercadoPago.
