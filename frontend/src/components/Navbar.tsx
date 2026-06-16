@@ -23,20 +23,20 @@ export const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b">
+    <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold text-indigo-600">
+            <Link to="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
               Manuscripto
             </Link>
           </div>
           <div className="flex items-center space-x-4">
-            <Link to="/catalog" className="text-gray-600 hover:text-indigo-600 p-2" title="Catálogo">
-              <Book className="h-5 w-5" />
+            <Link to="/catalog" className="text-gray-600 hover:text-indigo-600 p-2 transition-all hover:scale-110" title="Catálogo">
+              <Book className="h-6 w-6" />
             </Link>
             {session ? (
-              <button onClick={handleLogout} className="text-gray-500 hover:text-red-600 p-2" title="Sair">
+              <button onClick={handleLogout} className="text-gray-500 hover:text-red-600 p-2 transition-colors" title="Sair">
                 <LogOut className="h-5 w-5" />
               </button>
             ) : (

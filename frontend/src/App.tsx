@@ -5,6 +5,7 @@ import { Login } from './pages/Login';
 import { Home } from './pages/Home';
 import { Catalog } from './pages/Catalog';
 import { Navbar } from './components/Navbar';
+import { Loader2 } from 'lucide-react';
 
 function App() {
   const [session, setSession] = useState<any>(null);
@@ -14,7 +15,7 @@ function App() {
     supabase.auth.getSession().then(({ data: { session } }: any) => {
       setSession(session);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setSession(session);
@@ -23,7 +24,13 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
 
   return (
     <Router>
