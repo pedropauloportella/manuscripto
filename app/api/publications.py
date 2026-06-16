@@ -19,7 +19,7 @@ def create_publication(
     *,
     db: Session = Depends(get_db),
     obj_in: schemas.PublicacaoCreate,
-    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
 ):
     """Cria uma nova publicação (Apenas Superusers)."""
     db_obj = models.Publicacao(**obj_in.model_dump())
@@ -33,7 +33,7 @@ def update_publication(
     pub_id: UUID,
     obj_in: schemas.PublicacaoUpdate,
     db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
 ):
     """Atualiza dados da publicação (Apenas Superusers)."""
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
@@ -52,7 +52,7 @@ def update_publication(
 def delete_publication(
     pub_id: UUID,
     db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
 ):
     """Remove uma publicação permanentemente (Apenas Superusers)."""
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
@@ -80,7 +80,7 @@ def create_vaga(
     pub_id: UUID, 
     obj_in: schemas.VagaCreate, 
     db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
 ):
     """Cria vagas para venda de coautoria (Apenas Superusers)."""
     # Verifica se a publicação existe
@@ -98,7 +98,7 @@ def create_vaga(
 def delete_vaga(
     vaga_id: UUID,
     db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
 ):
     """Remove uma vaga específica (Apenas Superusers)."""
     vaga = db.query(models.Vaga).filter(models.Vaga.id == vaga_id).first()
@@ -115,7 +115,7 @@ def upload_versao(
     numero_versao: str,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(deps.get_current_user)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_user)
 ):
     # Verifica se o usuário tem permissão (é autor da publicação)
     autor_vinculo = db.query(models.AutorPublicacao).filter(
@@ -152,7 +152,7 @@ def upload_versao(
 def list_versoes(
     pub_id: UUID,
     db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(deps.get_current_user)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_user)
 ):
     """Lista todas as versões de uma publicação (Apenas para autores)."""
     autor_vinculo = db.query(models.AutorPublicacao).filter(
@@ -170,7 +170,7 @@ def download_versao(
     pub_id: UUID,
     versao_id: UUID,
     db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(deps.get_current_user)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_user)
 ):
     """Gera link de download para uma versão específica."""
     autor_vinculo = db.query(models.AutorPublicacao).filter(

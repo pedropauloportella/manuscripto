@@ -34,6 +34,7 @@ def login_access_token(
         "email": user.email,
         "aud": "authenticated",
         "role": "authenticated",
+        "is_admin": user.is_superuser,
         "exp": expire
     }
     
@@ -141,6 +142,7 @@ async def orcid_callback(code: str, db: Session = Depends(get_db)):
         "email": user.email,
         "aud": "authenticated",
         "role": "authenticated",
+        "is_admin": user.is_superuser,
         "exp": expire
     }
     
@@ -237,6 +239,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         "email": user.email,
         "aud": "authenticated",
         "role": "authenticated",
+        "is_admin": user.is_superuser,
         "exp": expire
     }
     

@@ -105,11 +105,23 @@ docker compose -f docker-compose.dev.yml exec app alembic upgrade head
 
 ### 6. Criar Usuário Administrador (Opcional)
 
-Você pode usar um script para criar um usuário administrador inicial:
+Para que o sistema reconheça um usuário como administrador (via `app_metadata` no JWT), siga estes passos:
 
+1. **Criar Usuário no Supabase:**
+   Vá ao Dashboard do Supabase -> **Authentication** -> **Users** -> **Add User** e crie o usuário (ex: `admin@example.com`).
+
+2. **Promover a Admin (SQL Editor):**
+   Execute o seguinte comando no **SQL Editor** do Supabase para injetar a flag de administrador diretamente nos metadados do JWT:
+   ```sql
+   UPDATE auth.users 
+   SET raw_app_meta_data = raw_app_meta_data || '{"is_admin": true}' 
+   WHERE email = 'admin@example.com';
+   ```
+
+3. **Criar no Banco Local (Opcional):**
+   Caso seu backend ainda utilize uma tabela de usuários local para logs ou auditoria:
 ```bash
-# Exemplo (assumindo o script na pasta 'scripts'):
-docker-compose -f docker-compose.dev.yml exec app python scripts/create_admin.py --email admin@example.com --password adminpassword
+docker compose -f docker-compose.dev.yml exec app python scripts/create_admin.py --email admin@example.com --password adminpassword
 ```
 
 ### 7. Acesso à Aplicação

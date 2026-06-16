@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
-import { LogOut, Book, LogIn } from 'lucide-react';
+import { LogOut, Book, LogIn, LayoutDashboard } from 'lucide-react';
 
-export const Navbar = () => {
+export const Navbar = ({ isAdmin }: { isAdmin: boolean }) => {
   const navigate = useNavigate();
   const [session, setSession] = useState<any>(null);
 
@@ -35,6 +35,11 @@ export const Navbar = () => {
             <Link to="/catalog" className="text-gray-600 hover:text-indigo-600 p-2 transition-all hover:scale-110" title="Catálogo">
               <Book className="h-6 w-6" />
             </Link>
+            {isAdmin && (
+              <Link to="/admin" className="text-indigo-600 hover:text-indigo-800 p-2 transition-all hover:rotate-12" title="Painel Admin">
+                <LayoutDashboard className="h-6 w-6" />
+              </Link>
+            )}
             {session ? (
               <button onClick={handleLogout} className="text-gray-500 hover:text-red-600 p-2 transition-colors" title="Sair">
                 <LogOut className="h-5 w-5" />

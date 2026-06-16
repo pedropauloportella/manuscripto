@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
-import { GraduationCap, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import api from '../services/api';
+import { GraduationCap, Mail, Lock, UserPlus, LogIn, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
@@ -34,12 +37,31 @@ export const Login = () => {
       if (error) alert(error.message);
       else alert("Cadastro realizado com sucesso! Verifique seu e-mail para confirmar a conta.");
     } else {
-      // Lógica de Login
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) alert(error.message);
+      try {
+        // Autentica diretamente no Supabase
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        // Verifica se o usuário é admin via metadata do Supabase
+        if (authData.user?.app_metadata?.is_admin) {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
+
+      } catch (error: any) {
+        console.error("Erro detalhado no login:", error);
+        const errorMessage = 
+          error.response?.data?.detail || 
+          error.message || 
+          (error.error_description) || // Para erros vindos do Supabase
+          "Erro inesperado na autenticação";
+        alert(`Falha no login: ${errorMessage}`);
+      }
     }
     setLoading(false);
   };
@@ -49,7 +71,7 @@ export const Login = () => {
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900">Manuscripto</h2>
-          <p className="mt-2 text-sm text-gray-600">Gestão Editorial Acadêmica</p>
+          <p className="mt-2 text-sm text-gray-600 font-medium">Gestão Editorial Acadêmica</p>
         </div>
         <div className="mt-8 space-y-4">
           <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
@@ -86,7 +108,10 @@ export const Login = () => {
               />
             </div>
             <button type="submit" disabled={loading} className="w-full flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50">
-              {loading ? "Processando..." : (isSignUp ? <><UserPlus className="h-5 w-5 mr-2" /> Criar Conta</> : <><LogIn className="h-5 w-5 mr-2" /> Entrar</>)}
+              {loading ? 
+                <Loader2 className="animate-spin h-5 w-5" /> : 
+                (isSignUp ? <><UserPlus className="h-5 w-5 mr-2" /> Criar Conta</> : <><LogIn className="h-5 w-5 mr-2" /> Entrar</>)
+              }
             </button>
           </form>
           <div className="text-center mt-4">
