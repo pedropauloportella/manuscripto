@@ -1,6 +1,8 @@
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends, HTTPException, status
+from sqlalchemy import text
 from app.api import auth, publications, payments, catalog, users
 from app.core.config import settings
 
@@ -25,6 +27,17 @@ app.include_router(catalog.router, prefix=f"{settings.API_V1_STR}/catalog", tags
 app.include_router(publications.router, prefix=f"{settings.API_V1_STR}/publications", tags=["Publicações"])
 app.include_router(payments.router, prefix=f"{settings.API_V1_STR}/payments", tags=["Pagamentos"])
 app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["Gestão de Usuários"])
+
+from app.db.session import get_db # Import get_db
+from sqlalchemy.orm import Session # Import Session
+
+@app.get("/health", tags=["Health Check"])
+def health_check(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1")) # Simple query to check database connection
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Database connection failed: {e}")
 
 @app.get("/")
 def root():
