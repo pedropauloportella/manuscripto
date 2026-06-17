@@ -1,9 +1,10 @@
-from typing import Generator
+from typing import Generator, Optional, Any
 from fastapi import Depends, HTTPException, status
 from uuid import UUID
 from fastapi.security import OAuth2PasswordBearer # Mantemos para extrair o token do header
 from jose import jwt, JWTError
 from pydantic import BaseModel, ValidationError # Importamos BaseModel para criar o UserFromJWT
+import httpx
 
 from app.core.config import settings
 # Não precisamos mais de 'db' ou 'models' para get_current_user
@@ -21,24 +22,52 @@ class UserFromJWT(BaseModel):
     email: str
     is_active: bool = True
     is_superuser: bool = False # Corresponde ao 'is_admin' do Supabase app_metadata
+    nome_completo: Optional[str] = None
+    orcid_id: Optional[str] = None
 
-def get_current_user(
+# Cache simples para as chaves do Supabase para não sobrecarregar a rede
+_jwks_cache: Optional[dict] = None
+
+async def get_supabase_jwks() -> dict:
+    global _jwks_cache
+    if _jwks_cache is None:
+        if not settings.DATABASE_REF:
+            raise ValueError("DATABASE_REF não configurado no .env")
+        url = f"https://{settings.DATABASE_REF}.supabase.co/auth/v1/.well-known/jwks.json"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            _jwks_cache = response.json()
+    return _jwks_cache
+
+async def get_current_user(
     token: str = Depends(reusable_oauth2)
 ) -> UserFromJWT:
     """
     Valida o token JWT e recupera o usuário atual dos claims do token.
-    Não consulta o banco de dados local para informações do usuário.
     """
-    # Supabase usa algoritmo HS256 por padrão
-    jwt_secret = settings.SUPABASE_JWT_SECRET or settings.SECRET_KEY
     try:
-        # Obtemos o cabeçalho para identificar o algoritmo e evitar o erro "alg value not allowed"
+        # 1. Identifica o algoritmo e a chave no header do token
         unverified_header = jwt.get_unverified_header(token)
-        algorithm = unverified_header.get("alg", "HS256")
+        algorithm = unverified_header.get("alg")
+        
+        # 2. Se for HS256, usa o segredo do .env. Se for ES256, busca no JWKS.
+        if algorithm == "HS256":
+            key = settings.SUPABASE_JWT_SECRET or settings.SECRET_KEY
+        else:
+            # Busca as chaves públicas do Supabase (contém a chave para ES256)
+            jwks = await get_supabase_jwks()
+            # O python-jose consegue validar usando o objeto JWKS completo 
+            # se passarmos a chave correta baseada no 'kid' (Key ID)
+            key = jwks
 
-        # Decodificamos o token. O 'verify_aud' é desabilitado para maior compatibilidade em dev.
+        # 3. Decodifica o token
         payload = jwt.decode(
-            token, jwt_secret, algorithms=[algorithm], options={"verify_aud": False}
+            token,
+            key,
+            algorithms=["HS256", "ES256"],
+            audience="authenticated",
+            options={"verify_aud": False}
         )
         
         user_id = UUID(payload.get("sub"))
@@ -49,18 +78,24 @@ def get_current_user(
         app_metadata = payload.get("app_metadata", {})
         is_admin = app_metadata.get("is_admin", payload.get("is_admin", False))
         
+        # Extrai metadados do perfil (nome, etc) vindos do Google/ORCID/Cadastro
+        user_metadata = payload.get("user_metadata", {})
+        
         # Cria um objeto UserFromJWT diretamente a partir dos claims
         user = UserFromJWT(
             id=user_id,
             email=user_email,
             is_active=True, # Assumimos que o usuário está ativo se o token é válido
-            is_superuser=is_admin # Define is_superuser com base no claim 'is_admin'
+            is_superuser=is_admin,
+            nome_completo=user_metadata.get("full_name") or user_metadata.get("nome_completo"),
+            orcid_id=user_metadata.get("orcid")
         )
         return user
-    except (JWTError, ValidationError, ValueError) as e: # Adicionado ValueError para conversão de UUID
+    except Exception as e:
+        # Capturamos qualquer erro (assinatura, PEM malformado, alg inválido) para evitar 500 Internal Server Error
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token inválido ou expirado: {e}",
+            detail=f"Falha na autenticação: {str(e)}",
         )
 
 def get_current_active_superuser(

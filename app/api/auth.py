@@ -1,251 +1,27 @@
-import uuid
-from datetime import datetime, timedelta
 from typing import Any, List
-import httpx
-from jose import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.api import deps
 from app.db.session import get_db
-from app.services.log_service import LogService
-from app.auth import utils
-from app.core.config import settings
 
 router = APIRouter()
 
-@router.post("/login", response_model=schemas.Token)
-def login_access_token(
-    db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
-) -> Any:
-    """Login via formulário padrão (Email/Senha)."""
-    user = db.query(models.Usuario).filter(models.Usuario.email == form_data.username).first()
-    if not user or not utils.verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Email ou senha incorretos")
-    
-    # Gera token compatível com Supabase
-    jwt_secret = settings.SUPABASE_JWT_SECRET or settings.SECRET_KEY
-    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    payload = {
-        "sub": str(user.id),
-        "email": user.email,
-        "aud": "authenticated",
-        "role": "authenticated",
-        "is_admin": user.is_superuser,
-        "exp": expire
-    }
-    
-    token = jwt.encode(payload, jwt_secret, algorithm="HS256")
-
-    LogService.log_event(
-        db=db,
-        tipo_evento="login_direto",
-        descricao=f"Usuário {user.email} realizou login via formulário",
-        usuario_id=user.id
-    )
-
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-    }
-
 @router.get("/me/publications", response_model=List[schemas.Publicacao])
 def read_user_publications(
-    current_user: models.Usuario = Depends(deps.get_current_user),
+    current_user: deps.UserFromJWT = Depends(deps.get_current_user),
     db: Session = Depends(get_db)
 ) -> Any:
     """Retorna as publicações em que o usuário logado é autor/coautor."""
-    return [
-        vinculo.publicacao 
-        for vinculo in current_user.publicacoes
-    ]
+    # Consulta a tabela de vínculo diretamente usando o UUID do token
+    return db.query(models.Publicacao).join(models.AutorPublicacao).filter(
+        models.AutorPublicacao.usuario_id == current_user.id
+    ).all()
 
-@router.get("/me", response_model=schemas.User)
+@router.get("/me", response_model=deps.UserFromJWT)
 def read_user_me(
-    current_user: models.Usuario = Depends(deps.get_current_user),
+    current_user: deps.UserFromJWT = Depends(deps.get_current_user)
 ) -> Any:
     """Retorna o perfil do usuário logado."""
     return current_user
-
-@router.get("/orcid/callback")
-async def orcid_callback(code: str, db: Session = Depends(get_db)):
-    """Troca o código do ORCID por um token e loga o usuário."""
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://orcid.org/oauth/token",
-            data={
-                "client_id": settings.ORCID_CLIENT_ID,
-                "client_secret": settings.ORCID_CLIENT_SECRET,
-                "grant_type": "authorization_code",
-                "redirect_uri": f"{settings.API_BASE_URL}{settings.API_V1_STR}/auth/orcid/callback",
-                "code": code,
-            },
-            headers={"Accept": "application/json"}
-        )
-
-    if response.status_code != 200:
-        raise HTTPException(status_code=400, detail="Falha na autenticação com ORCID")
-
-    data = response.json()
-    orcid_id = data.get("orcid")
-    nome = data.get("name")
-
-    # Busca ou Cria o usuário
-    user = db.query(models.Usuario).filter(models.Usuario.orcid_id == orcid_id).first()
-
-    if not user:
-        user_uuid = None
-        try:
-            # Tenta converter o sub ou orcid_id em UUID se o provedor enviar nesse formato
-            potential_uuid = data.get("sub") or orcid_id
-            if potential_uuid:
-                user_uuid = uuid.UUID(potential_uuid)
-        except (ValueError, TypeError):
-            # Caso não seja um UUID válido (formato padrão do ORCID), 
-            # a Base (SQLAlchemy) gerará um novo UUID automaticamente.
-            pass
-
-        user = models.Usuario(
-            id=user_uuid,
-            orcid_id=orcid_id,
-            nome_completo=nome,
-            email=f"{orcid_id}@orcid.org", # Placeholder se email não disponível
-            is_active=True
-        )
-        db.add(user)
-        
-        LogService.log_event(
-            db=db,
-            tipo_evento="usuario_criado_orcid",
-            descricao=f"Novo usuário criado via ORCID: {orcid_id}",
-            usuario_id=user.id
-        )
-        db.commit()
-        db.refresh(user)
-    else:
-        LogService.log_event(
-            db=db,
-            tipo_evento="login_orcid",
-            descricao=f"Login via ORCID: {orcid_id}",
-            usuario_id=user.id
-        )
-
-    # Gera token compatível com Supabase Auth
-    jwt_secret = settings.SUPABASE_JWT_SECRET or settings.SECRET_KEY
-    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    payload = {
-        "sub": str(user.id),
-        "email": user.email,
-        "aud": "authenticated",
-        "role": "authenticated",
-        "is_admin": user.is_superuser,
-        "exp": expire
-    }
-    
-    token = jwt.encode(payload, jwt_secret, algorithm="HS256")
-
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-    }
-
-@router.get("/google/callback")
-async def google_callback(code: str, db: Session = Depends(get_db)):
-    """Troca o código do Google por um token e loga o usuário."""
-    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
-        raise HTTPException(status_code=500, detail="Configuração do Google OAuth ausente")
-
-    async with httpx.AsyncClient() as client:
-        # 1. Trocar o código pelo token de acesso
-        token_response = await client.post(
-            "https://oauth2.googleapis.com/token",
-            data={
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "code": code,
-                "grant_type": "authorization_code",
-                "redirect_uri": f"{settings.API_BASE_URL}{settings.API_V1_STR}/auth/google/callback",
-            },
-        )
-
-        if token_response.status_code != 200:
-            raise HTTPException(status_code=400, detail="Falha na autenticação com Google (token)")
-
-        token_data = token_response.json()
-        access_token = token_data.get("access_token")
-
-        # 2. Obter informações do perfil do usuário
-        user_info_response = await client.get(
-            "https://www.googleapis.com/oauth2/v3/userinfo",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-
-        if user_info_response.status_code != 200:
-            raise HTTPException(status_code=400, detail="Falha ao obter dados do usuário no Google")
-
-        user_data = user_info_response.json()
-        email = user_data.get("email")
-        nome = user_data.get("name")
-
-    if not email:
-        raise HTTPException(status_code=400, detail="Email não retornado pelo Google")
-
-    # 3. Busca ou Cria o usuário no banco local
-    user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
-
-    if not user:
-        user_uuid = None
-        try:
-            potential_uuid = user_data.get("sub")
-            if potential_uuid:
-                user_uuid = uuid.UUID(potential_uuid)
-        except (ValueError, TypeError):
-            pass
-
-        user = models.Usuario(
-            id=user_uuid,
-            email=email,
-            nome_completo=nome,
-            is_active=True
-        )
-        db.add(user)
-        
-        LogService.log_event(
-            db=db,
-            tipo_evento="usuario_criado_google",
-            descricao=f"Novo usuário criado via Google: {email}",
-            usuario_id=user.id
-        )
-        db.commit()
-        db.refresh(user)
-    else:
-        LogService.log_event(
-            db=db,
-            tipo_evento="login_google",
-            descricao=f"Login via Google: {email}",
-            usuario_id=user.id
-        )
-
-    # Gera token compatível com Supabase Auth
-    jwt_secret = settings.SUPABASE_JWT_SECRET or settings.SECRET_KEY
-    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    payload = {
-        "sub": str(user.id),
-        "email": user.email,
-        "aud": "authenticated",
-        "role": "authenticated",
-        "is_admin": user.is_superuser,
-        "exp": expire
-    }
-    
-    token = jwt.encode(payload, jwt_secret, algorithm="HS256")
-
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-    }
