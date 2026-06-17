@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { supabase } from '../services/supabase';
+import { useNotification } from '../context/NotificationContext';
 import { Book, ShoppingCart, Loader2, Info } from 'lucide-react';
 
 interface Vaga {
@@ -15,14 +16,16 @@ export const Catalog = () => {
   const [vagas, setVagas] = useState<Vaga[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
+  const { showNotification } = useNotification();
 
   useEffect(() => {
     const fetchVagas = async () => {
       try {
         const response = await api.get('/catalog/vagas');
         setVagas(response.data);
-      } catch (error) {
-        console.error("Erro ao carregar catálogo", error);
+      } catch (error: any) {
+        console.error("Erro ao carregar catálogo", error); // Manter console.error para depuração
+        showNotification("Erro ao carregar o catálogo de vagas.", 'error');
       } finally {
         setLoading(false);
       }
@@ -34,16 +37,16 @@ export const Catalog = () => {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      alert("Você precisa estar logado para adquirir uma vaga.");
+      showNotification("Você precisa estar logado para adquirir uma vaga.", 'info');
       return;
     }
 
     setPurchasingId(vagaId);
     try {
       const response = await api.post(`/payments/checkout/${vagaId}`);
-      window.location.href = response.data.init_point;
+      window.location.href = response.data.init_point; // Redireciona para o MercadoPago
     } catch (error) {
-      alert("Não foi possível iniciar a compra. Tente novamente mais tarde.");
+      showNotification("Não foi possível iniciar a compra. Tente novamente mais tarde.", 'error');
     } finally {
       setPurchasingId(null);
     }

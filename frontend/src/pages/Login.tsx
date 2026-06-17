@@ -3,12 +3,14 @@ import { supabase } from '../services/supabase';
 import api from '../services/api';
 import { GraduationCap, Mail, Lock, UserPlus, LogIn, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useNotification } from '../context/NotificationContext';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { showNotification } = useNotification();
   const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
@@ -34,8 +36,8 @@ export const Login = () => {
         email,
         password,
       });
-      if (error) alert(error.message);
-      else alert("Cadastro realizado com sucesso! Verifique seu e-mail para confirmar a conta.");
+      if (error) showNotification(error.message, 'error');
+      else showNotification("Cadastro realizado com sucesso! Verifique seu e-mail para confirmar a conta.", 'success');
     } else {
       try {
         // Autentica diretamente no Supabase
@@ -59,8 +61,8 @@ export const Login = () => {
           error.response?.data?.detail || 
           error.message || 
           (error.error_description) || // Para erros vindos do Supabase
-          "Erro inesperado na autenticação";
-        alert(`Falha no login: ${errorMessage}`);
+          "Erro inesperado na autenticação"; // Para erros vindos do Supabase
+        showNotification(`Falha no login: ${errorMessage}`, 'error');
       }
     }
     setLoading(false);
