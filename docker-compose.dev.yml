@@ -11,15 +11,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: manuscripto_app # Nome amigável para o contêiner
+    container_name: manuscripto_app
     # Mapeia a porta 8000 do host para a porta 8000 do contêiner
     ports:
       - "8000:8000"
+    # Redireciona a saída do Uvicorn para um arquivo de log no volume montado
+    command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload >> /app_logs/app.log 2>&1"
     # Monta o diretório atual do host no diretório /app do contêiner.
     # Isso permite que as alterações no código local sejam refletidas no contêiner
     # e que o uvicorn com --reload detecte essas mudanças.
     volumes:
       - .:/app
+      - ./logs/app:/app_logs # Monta o diretório de logs do host para logs da app
     # Carrega variáveis de ambiente do arquivo .env na raiz do projeto para este serviço
     env_file:
       - .env
@@ -40,13 +43,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: development
-    container_name: manuscripto_frontend
+    container_name: manuscripto_frontend # Nome amigável para o contêiner
     ports:
       - "5173:5173"
-    command: npm run dev -- --host 0.0.0.0
+    # Redireciona a saída do servidor Vite para um arquivo de log no volume montado
+    command: sh -c "npm run dev -- --host 0.0.0.0 >> /frontend_logs/frontend.log 2>&1"
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - ./logs/frontend:/frontend_logs # Monta o diretório de logs do host para logs do frontend
     env_file:
       - ./frontend/.env
     networks:

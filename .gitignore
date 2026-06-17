@@ -1,8 +1,12 @@
 __pycache__/
-**/__pycache__/  
+**/__pycache__/
+/logs
 .pytest_cache/
 .pytest_tmpdir/
 .env
 .pyc
 .db
 .mdc
+.log
+
+*.log
