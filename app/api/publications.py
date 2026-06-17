@@ -94,6 +94,26 @@ def create_vaga(
     db.refresh(db_vaga)
     return db_vaga
 
+@router.put("/vagas/{vaga_id}", response_model=schemas.Vaga)
+def update_vaga(
+    vaga_id: UUID,
+    obj_in: schemas.VagaUpdate,
+    db: Session = Depends(get_db),
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
+):
+    """Atualiza uma vaga específica (Apenas Superusers)."""
+    vaga = db.query(models.Vaga).filter(models.Vaga.id == vaga_id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+
+    update_data = obj_in.model_dump(exclude_unset=True)
+    for field in update_data:
+        setattr(vaga, field, update_data[field])
+    
+    db.commit()
+    db.refresh(vaga)
+    return vaga
+
 @router.delete("/vagas/{vaga_id}", status_code=204)
 def delete_vaga(
     vaga_id: UUID,

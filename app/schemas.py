@@ -64,6 +64,13 @@ class VagaBase(BaseModel):
 class VagaCreate(VagaBase):
     pass
 
+class VagaUpdate(BaseModel):
+    titulo: Optional[str] = None
+    descricao: Optional[str] = None
+    preco: Optional[Decimal] = None
+    quantidade_total: Optional[int] = None
+    ativa: Optional[bool] = None
+
 class Vaga(VagaBase):
     id: UUID
     publicacao_id: UUID
