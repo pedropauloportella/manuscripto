@@ -5,6 +5,7 @@ import api from './services/api';
 import { Login } from './pages/Login';
 import { Home } from './pages/Home';
 import { Catalog } from './pages/Catalog';
+import { NotificationProvider } from './context/NotificationContext';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Navbar } from './components/Navbar';
 import { Loader2 } from 'lucide-react';
@@ -56,24 +57,26 @@ function App() {
   }
 
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true } as any}>
-      <div className="min-h-screen bg-gray-50">
-        <Navbar isAdmin={isAdmin} />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/catalog" element={<Catalog />} />
-          <Route 
-            path="/login" 
-            element={
-              session ? 
-              <Navigate to={isAdmin ? "/admin" : "/"} /> : 
-              <Login />
-            } 
-          />
-          <Route path="/admin" element={isAdmin ? <AdminDashboard /> : <Navigate to="/" />} />
-        </Routes>
-      </div>
-    </Router>
+    <NotificationProvider>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true } as any}>
+        <div className="min-h-screen bg-gray-50">
+          <Navbar isAdmin={isAdmin} />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/catalog" element={<Catalog />} />
+            <Route 
+              path="/login" 
+              element={
+                session ? 
+                <Navigate to={isAdmin ? "/admin" : "/"} /> : 
+                <Login />
+              } 
+            />
+            <Route path="/admin" element={isAdmin ? <AdminDashboard /> : <Navigate to="/" />} />
+          </Routes>
+        </div>
+      </Router>
+    </NotificationProvider>
   );
 }
 
