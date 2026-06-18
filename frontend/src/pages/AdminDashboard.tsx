@@ -5,6 +5,7 @@ import api from '../services/api';
 import axios from 'axios'; // Importar axios para a chamada de health check
 import { Plus, Book, Trash2, LayoutDashboard, Loader2, Users, ShieldAlert, Activity, Database, Check, X, User } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
+import { CreatePublicationModal } from '../components/CreatePublicationModal';
 
 interface Publicacao {
   id: string;
@@ -43,17 +44,7 @@ export const AdminDashboard = () => {
   const [publicacoes, setPublicacoes] = useState<Publicacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newPub, setNewPub] = useState({ 
-    titulo: '', 
-    descricao: '', 
-    tipo: 'livro',
-    resumo: '',
-    area_conhecimento: '',
-    data_prevista_publicacao: '',
-    tem_doi: false,
-    tem_isbn: false,
-    tem_issn: false
-  });
+
   const [editingPub, setEditingPub] = useState<Publicacao | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'publications' | 'users' | 'settings'>('overview');
@@ -194,21 +185,7 @@ export const AdminDashboard = () => {
     setFrontendStatus('operational'); // Frontend é operacional se este componente está renderizado
   };
 
-  const handleCreatePub = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await api.post('/publications/', newPub);
-      setNewPub({ titulo: '', descricao: '', tipo: 'livro' });
-      fetchData();
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || "Erro desconhecido";
-      console.error("Erro ao criar publicação:", errorMessage);
-      
-      if (error.response?.status === 403) showNotification("Acesso negado: Sem privilégios de administrador.", 'error');
-      else if (error.response?.status === 401) showNotification(`Sessão inválida: ${errorMessage}`, 'error');
-      else showNotification(`Erro ao criar publicação: ${errorMessage}`, 'error');
-    }
-  };
+
 
   const handleDeletePublication = async (pubId: string) => {
     if (!window.confirm("Tem certeza que deseja excluir esta publicação?")) return; // Manter confirm para ações destrutivas
@@ -428,37 +405,27 @@ export const AdminDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Formulário de Criação */}
           <div className="lg:col-span-1">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h2 className="text-xl font-bold mb-6 flex items-center">
-                <Plus className="mr-2 h-5 w-5 text-indigo-600" /> Nova Publicação
-              </h2>
-              <form onSubmit={handleCreatePub} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={newPub.titulo}
-                    onChange={e => setNewPub({...newPub, titulo: e.target.value})}
-                    required
-                  />
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden flex flex-col justify-between h-full min-h-[300px]">
+              {/* Sutil detalhe de fundo */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10" />
+              
+              <div className="relative">
+                <div className="bg-white/20 p-3 rounded-xl w-fit mb-6">
+                  <Plus className="h-6 w-6 text-white" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                  <select 
-                    className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={newPub.tipo}
-                    onChange={e => setNewPub({...newPub, tipo: e.target.value})}
-                  >
-                    <option value="livro">Livro</option>
-                    <option value="artigo">Artigo</option>
-                    <option value="capitulo">Capítulo</option>
-                  </select>
-                </div>
-                <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors">
-                  Criar Obra
-                </button>
-              </form>
+                <h2 className="text-2xl font-extrabold mb-2">Publicar Nova Obra</h2>
+                <p className="text-white/85 text-xs leading-relaxed mb-6">
+                  Cadastre um livro, artigo ou capítulo científico. Preencha a ficha técnica completa e cadastre as vagas de coautoria vinculadas em lote.
+                </p>
+              </div>
+              
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="w-full bg-white text-indigo-700 py-3 rounded-xl font-bold hover:bg-indigo-50 transition-colors shadow-md relative z-10 flex items-center justify-center space-x-2 text-sm"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Iniciar Cadastro</span>
+              </button>
             </div>
           </div>
 
@@ -498,6 +465,13 @@ export const AdminDashboard = () => {
             <h2 className="text-2xl font-bold flex items-center">
               <Book className="mr-2 h-6 w-6 text-indigo-600" /> Todas as Publicações
             </h2>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 transition-colors shadow-sm space-x-1.5"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nova Publicação</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 gap-6">
@@ -720,6 +694,14 @@ export const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Create Publication Modal */}
+      <CreatePublicationModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchData}
+        currentUserId={currentUserId}
+      />
     </div>
   );
 };
