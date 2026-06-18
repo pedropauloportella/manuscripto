@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload # Import para carregamento ansioso
 from app.db.session import get_db
 from app import models, schemas
 from app.api import deps
@@ -12,7 +13,7 @@ router = APIRouter()
 
 @router.get("/", response_model=List[schemas.Publicacao])
 def list_publications(db: Session = Depends(get_db), skip: int = 0, limit: int = 100):
-    return db.query(models.Publicacao).offset(skip).limit(limit).all()
+    return db.query(models.Publicacao).options(joinedload(models.Publicacao.criador)).offset(skip).limit(limit).all()
 
 @router.post("/", response_model=schemas.Publicacao)
 def create_publication(

@@ -11,8 +11,8 @@ def mock_mp_service():
     Isso evita chamadas reais à API do MercadoPago, Redis e E-mail.
     """
     with patch("app.api.payments.mp_service") as mocked_mp, \
-         patch("app.api.payments.email_service") as mocked_email, \
-         patch("app.api.payments.messaging_service") as mocked_msg:
+         patch("app.api.payments.email_service", create=True) as mocked_email, \
+         patch("app.api.payments.messaging_service", create=True) as mocked_msg:
         
         # Configura o retorno padrão para criação de link de checkout
         mocked_mp.create_payment_link.return_value = {

@@ -10,6 +10,13 @@ interface Publicacao {
   id: string;
   titulo: string;
   tipo: string;
+  descricao?: string;
+  resumo?: string;
+  area_conhecimento?: string;
+  data_prevista_publicacao?: string;
+  tem_doi?: boolean;
+  tem_isbn?: boolean;
+  tem_issn?: boolean;
 }
 
 interface Vaga {
@@ -19,6 +26,9 @@ interface Vaga {
   quantidade_total: number;
   quantidade_disponivel: number;
   ativa: boolean;
+  data_encerramento?: string;
+  pre_requisitos?: string;
+  imagem_url?: string; // Novo campo
 }
 
 interface User {
@@ -32,7 +42,18 @@ interface User {
 export const AdminDashboard = () => {
   const [publicacoes, setPublicacoes] = useState<Publicacao[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newPub, setNewPub] = useState({ titulo: '', descricao: '', tipo: 'livro' });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newPub, setNewPub] = useState({ 
+    titulo: '', 
+    descricao: '', 
+    tipo: 'livro',
+    resumo: '',
+    area_conhecimento: '',
+    data_prevista_publicacao: '',
+    tem_doi: false,
+    tem_isbn: false,
+    tem_issn: false
+  });
   const [editingPub, setEditingPub] = useState<Publicacao | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'publications' | 'users' | 'settings'>('overview');
@@ -42,7 +63,7 @@ export const AdminDashboard = () => {
   
   const [selectedPubVagas, setSelectedPubVagas] = useState<string | null>(null);
   const [vagas, setVagas] = useState<Vaga[]>([]);
-  const [newVaga, setNewVaga] = useState({ titulo: '', preco: 0, quantidade_total: 1 });
+  const [newVaga, setNewVaga] = useState({ titulo: '', preco: 0, quantidade_total: 1, data_encerramento: '', pre_requisitos: '', imagem_url: '' });
   const [editingVaga, setEditingVaga] = useState<Vaga | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -119,7 +140,7 @@ export const AdminDashboard = () => {
     try {
       await api.post(`/publications/${selectedPubVagas}/vagas`, newVaga);
       showNotification("Vaga de coautoria criada!", "success");
-      setNewVaga({ titulo: '', preco: 0, quantidade_total: 1 });
+      setNewVaga({ titulo: '', preco: 0, quantidade_total: 1, data_encerramento: '', pre_requisitos: '', imagem_url: '' });
       fetchVagas(selectedPubVagas);
     } catch (error) {
       showNotification("Erro ao criar vaga.", "error");
@@ -595,6 +616,34 @@ export const AdminDashboard = () => {
                         />
                       </div>
                       <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Pré-requisitos do Autor</label>
+                        <input 
+                          className="w-full text-sm border rounded p-2" 
+                          placeholder="Ex: Mestre ou Doutorando"
+                          value={newVaga.pre_requisitos}
+                          onChange={e => setNewVaga({...newVaga, pre_requisitos: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Prazo Final Adesão</label>
+                        <input 
+                          type="date"
+                          className="w-full text-sm border rounded p-2"
+                          value={newVaga.data_encerramento}
+                          onChange={e => setNewVaga({...newVaga, data_encerramento: e.target.value})}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">URL da Imagem (Opcional)</label>
+                        <input 
+                          type="url"
+                          className="w-full text-sm border rounded p-2"
+                          placeholder="https://exemplo.com/imagem.jpg"
+                          value={newVaga.imagem_url}
+                          onChange={e => setNewVaga({...newVaga, imagem_url: e.target.value})}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
                         <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Qtd. Total</label>
                         <input 
                           type="number" 

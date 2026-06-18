@@ -27,6 +27,7 @@ class Usuario(Base):
     publicacoes = relationship("AutorPublicacao", back_populates="usuario")
     compras = relationship("Compra", back_populates="usuario")
     logs = relationship("LogEvento", back_populates="usuario")
+    publicacoes_criadas = relationship("Publicacao", back_populates="criador")
 
 class Publicacao(Base):
     __tablename__ = "publicacao"
@@ -38,21 +39,31 @@ class Publicacao(Base):
     tipo = Column(String) # livro, artigo, etc.
     issn_isbn = Column(String)
     usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuario.id"), nullable=True)
+    resumo = Column(Text, nullable=True)
+    area_conhecimento = Column(String, nullable=True)
+    data_prevista_publicacao = Column(DateTime, nullable=True)
+    tem_doi = Column(Boolean, server_default='f', nullable=False)
+    tem_isbn = Column(Boolean, server_default='f', nullable=False)
+    tem_issn = Column(Boolean, server_default='f', nullable=False)
     
     vagas = relationship("Vaga", back_populates="publicacao")
     autores = relationship("AutorPublicacao", back_populates="publicacao")
     versoes = relationship("Versao", back_populates="publicacao")
+    criador = relationship("Usuario", back_populates="publicacoes_criadas", foreign_keys=[usuario_id])
 
 class Vaga(Base):
     __tablename__ = "vaga"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    publicacao_id = Column(UUID(as_uuid=True), ForeignKey("publicacao.id"))
+    publicacao_id = Column(UUID(as_uuid=True), ForeignKey("publicacao.id"), nullable=False)
     titulo = Column(String, nullable=False)
     descricao = Column(Text)
     preco = Column(Numeric(10, 2), nullable=False)
     quantidade_total = Column(Integer, nullable=False)
     quantidade_disponivel = Column(Integer)
     ativa = Column(Boolean, default=True)
+    data_encerramento = Column(DateTime, nullable=True)
+    pre_requisitos = Column(String, nullable=True)
+    imagem_url = Column(String, nullable=True) # Novo campo para a imagem da vaga
     
     publicacao = relationship("Publicacao", back_populates="vagas")
 

@@ -1,8 +1,9 @@
 import uuid
 from decimal import Decimal
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app import models
 from app.services.cache_service import cache_service
+from datetime import datetime, timedelta
 
 class SeedService:
     def __init__(self, db: Session):
@@ -73,7 +74,13 @@ class SeedService:
             subtitulo="Desafios e Oportunidades no Século XXI",
             descricao="Uma análise profunda sobre o impacto de LLMs em salas de aula.",
             tipo="livro",
-            ano_publicacao=2024
+            ano_publicacao=2024,
+            resumo="Este livro explora as aplicações e implicações da inteligência artificial na educação moderna, abordando desde ferramentas de aprendizado personalizado até os desafios éticos e sociais.",
+            area_conhecimento="Tecnologia e Educação",
+            data_prevista_publicacao=datetime.now() + timedelta(days=90),
+            tem_doi=True,
+            tem_isbn=True,
+            tem_issn=False
         )
         pub2 = models.Publicacao(
             id=uuid.uuid4(),
@@ -82,7 +89,13 @@ class SeedService:
             subtitulo="Cidades Verdes e o Futuro",
             descricao="Estudo de caso sobre mobilidade urbana sustentável em capitais brasileiras.",
             tipo="artigo",
-            ano_publicacao=2023
+            ano_publicacao=2023,
+            resumo="Artigo científico que investiga soluções inovadoras para o desenvolvimento urbano sustentável, com foco em mobilidade, energia e gestão de resíduos em grandes metrópoles.",
+            area_conhecimento="Meio Ambiente e Urbanismo",
+            data_prevista_publicacao=datetime.now() + timedelta(days=30),
+            tem_doi=True,
+            tem_isbn=False,
+            tem_issn=True
         )
         
         self.db.add_all([pub1, pub2])
@@ -97,7 +110,10 @@ class SeedService:
             preco=Decimal("450.00"),
             quantidade_total=3,
             quantidade_disponivel=3,
-            ativa=True
+            ativa=True,
+            data_encerramento=datetime.now() + timedelta(days=60),
+            pre_requisitos="Graduando ou Graduado em Ciências da Computação",
+            imagem_url="https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
         )
         self.db.add(vaga1)
 
