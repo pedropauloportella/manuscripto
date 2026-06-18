@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../services/supabase';
 import api from '../services/api';
 import axios from 'axios'; // Importar axios para a chamada de health check
-import { Plus, Book, Trash2, LayoutDashboard, Loader2, Users, ShieldAlert, Activity, Database, Check, X } from 'lucide-react';
+import { Plus, Book, Trash2, LayoutDashboard, Loader2, Users, ShieldAlert, Activity, Database, Check, X, User } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
 
 interface Publicacao {
@@ -42,12 +44,15 @@ export const AdminDashboard = () => {
   const [vagas, setVagas] = useState<Vaga[]>([]);
   const [newVaga, setNewVaga] = useState({ titulo: '', preco: 0, quantidade_total: 1 });
   const [editingVaga, setEditingVaga] = useState<Vaga | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const { showNotification } = useNotification();
 
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentUserId(session?.user?.id || null);
       // Carrega ambos em paralelo para melhor performance
       await Promise.all([fetchData(), fetchUsers(), checkSystemHealth()]);
       setLoading(false);
@@ -269,11 +274,21 @@ export const AdminDashboard = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">      
       <header className="mb-10">
-        <div>
-          <h1 className="text-4xl font-extrabold text-gray-900 flex items-center">
-            <LayoutDashboard className="mr-3 h-8 w-8 text-indigo-600" /> Painel de Controle
-          </h1>
-          <p className="text-gray-600 mt-1">Visão geral do sistema Manuscripto.</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-extrabold text-gray-900 flex items-center">
+              <LayoutDashboard className="mr-3 h-8 w-8 text-indigo-600" /> Painel de Controle
+            </h1>
+            <p className="text-gray-600 mt-1">Visão geral do sistema Manuscripto.</p>
+          </div>
+          {currentUserId && (
+            <Link 
+              to={`/profile/${currentUserId}`}
+              className="flex items-center px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              <User className="h-4 w-4 mr-2 text-indigo-600" /> Meu Perfil
+            </Link>
+          )}
         </div>
 
         {/* Navigation Tabs */}

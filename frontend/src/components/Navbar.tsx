@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
-import { LogOut, Book, LogIn, LayoutDashboard } from 'lucide-react';
+import { LogOut, Book, LogIn, LayoutDashboard, User } from 'lucide-react';
 
 export const Navbar = ({ isAdmin }: { isAdmin: boolean }) => {
   const navigate = useNavigate();
@@ -41,9 +41,14 @@ export const Navbar = ({ isAdmin }: { isAdmin: boolean }) => {
               </Link>
             )}
             {session ? (
-              <button onClick={handleLogout} className="text-gray-500 hover:text-red-600 p-2 transition-colors" title="Sair">
-                <LogOut className="h-5 w-5" />
-              </button>
+              <>
+                <Link to={`/profile/${session.user.id}`} className="text-gray-500 hover:text-indigo-600 p-2 transition-all hover:scale-110" title="Meu Perfil">
+                  <User className="h-6 w-6" />
+                </Link>
+                <button onClick={handleLogout} className="text-gray-500 hover:text-red-600 p-2 transition-colors" title="Sair">
+                  <LogOut className="h-5 w-5" />
+                </button>
+              </>
             ) : (
               <Link to="/login" className="flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
                 <LogIn className="h-4 w-4 mr-2" /> Entrar
