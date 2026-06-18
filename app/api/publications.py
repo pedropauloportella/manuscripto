@@ -19,10 +19,10 @@ def create_publication(
     *,
     db: Session = Depends(get_db),
     obj_in: schemas.PublicacaoCreate,
-    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_editor)
 ):
-    """Cria uma nova publicação (Apenas Superusers)."""
-    db_obj = models.Publicacao(**obj_in.model_dump())
+    """Cria uma nova publicação (Admin e Editores)."""
+    db_obj = models.Publicacao(**obj_in.model_dump(), usuario_id=current_user.id)
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
@@ -33,12 +33,15 @@ def update_publication(
     pub_id: UUID,
     obj_in: schemas.PublicacaoUpdate,
     db: Session = Depends(get_db),
-    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_editor)
 ):
-    """Atualiza dados da publicação (Apenas Superusers)."""
+    """Atualiza dados da publicação (Admin ou Dono)."""
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
     if not pub:
         raise HTTPException(status_code=404, detail="Publicação não encontrada")
+    
+    if not current_user.is_superuser and pub.usuario_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para editar esta publicação")
 
     update_data = obj_in.model_dump(exclude_unset=True)
     for field in update_data:
@@ -52,12 +55,15 @@ def update_publication(
 def delete_publication(
     pub_id: UUID,
     db: Session = Depends(get_db),
-    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_editor)
 ):
-    """Remove uma publicação permanentemente (Apenas Superusers)."""
+    """Remove uma publicação permanentemente (Admin ou Dono)."""
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
     if not pub:
         raise HTTPException(status_code=404, detail="Publicação não encontrada")
+
+    if not current_user.is_superuser and pub.usuario_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para deletar esta publicação")
     
     db.delete(pub)
     db.commit()
@@ -80,14 +86,17 @@ def create_vaga(
     pub_id: UUID, 
     obj_in: schemas.VagaCreate, 
     db: Session = Depends(get_db),
-    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_editor)
 ):
-    """Cria vagas para venda de coautoria (Apenas Superusers)."""
+    """Cria vagas para venda de coautoria (Admin ou Dono da publicação)."""
     # Verifica se a publicação existe
     pub = db.query(models.Publicacao).filter(models.Publicacao.id == pub_id).first()
     if not pub:
         raise HTTPException(status_code=404, detail="Publicação não encontrada")
     
+    if not current_user.is_superuser and pub.usuario_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para criar vagas nesta publicação")
+
     db_vaga = models.Vaga(**obj_in.model_dump(), publicacao_id=pub_id, quantidade_disponivel=obj_in.quantidade_total)
     db.add(db_vaga)
     db.commit()
@@ -99,12 +108,16 @@ def update_vaga(
     vaga_id: UUID,
     obj_in: schemas.VagaUpdate,
     db: Session = Depends(get_db),
-    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_editor)
 ):
-    """Atualiza uma vaga específica (Apenas Superusers)."""
+    """Atualiza uma vaga específica (Admin ou Dono da publicação)."""
     vaga = db.query(models.Vaga).filter(models.Vaga.id == vaga_id).first()
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
+
+    pub = db.query(models.Publicacao).filter(models.Publicacao.id == vaga.publicacao_id).first()
+    if not current_user.is_superuser and (not pub or pub.usuario_id != current_user.id):
+        raise HTTPException(status_code=403, detail="Você não tem permissão para editar esta vaga")
 
     update_data = obj_in.model_dump(exclude_unset=True)
     for field in update_data:
@@ -118,13 +131,17 @@ def update_vaga(
 def delete_vaga(
     vaga_id: UUID,
     db: Session = Depends(get_db),
-    current_user: deps.UserFromJWT = Depends(deps.get_current_active_superuser)
+    current_user: deps.UserFromJWT = Depends(deps.get_current_active_editor)
 ):
-    """Remove uma vaga específica (Apenas Superusers)."""
+    """Remove uma vaga específica (Admin ou Dono da publicação)."""
     vaga = db.query(models.Vaga).filter(models.Vaga.id == vaga_id).first()
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
     
+    pub = db.query(models.Publicacao).filter(models.Publicacao.id == vaga.publicacao_id).first()
+    if not current_user.is_superuser and (not pub or pub.usuario_id != current_user.id):
+        raise HTTPException(status_code=403, detail="Você não tem permissão para deletar esta vaga")
+
     db.delete(vaga)
     db.commit()
     return None

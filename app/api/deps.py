@@ -21,9 +21,11 @@ class UserFromJWT(BaseModel):
     id: UUID
     email: str
     is_active: bool = True
+    role: str = "autor"
     is_superuser: bool = False # Corresponde ao 'is_admin' do Supabase app_metadata
     nome_completo: Optional[str] = None
     orcid_id: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 # Cache simples para as chaves do Supabase para não sobrecarregar a rede
 _jwks_cache: Optional[dict] = None
@@ -77,6 +79,7 @@ async def get_current_user(
         # Verificamos no app_metadata e também na raiz, para maior compatibilidade
         app_metadata = payload.get("app_metadata", {})
         is_admin = app_metadata.get("is_admin", payload.get("is_admin", False))
+        role = app_metadata.get("role", "autor")
         
         # Extrai metadados do perfil (nome, etc) vindos do Google/ORCID/Cadastro
         user_metadata = payload.get("user_metadata", {})
@@ -86,9 +89,11 @@ async def get_current_user(
             id=user_id,
             email=user_email,
             is_active=True, # Assumimos que o usuário está ativo se o token é válido
+            role=role,
             is_superuser=is_admin,
             nome_completo=user_metadata.get("full_name") or user_metadata.get("nome_completo"),
-            orcid_id=user_metadata.get("orcid")
+            orcid_id=user_metadata.get("orcid") or user_metadata.get("orcid_id"),
+            avatar_url=user_metadata.get("avatar_url") or user_metadata.get("picture")
         )
         return user
     except Exception as e:
@@ -107,3 +112,13 @@ def get_current_active_superuser(
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="O usuário não tem privilégios suficientes")
     return current_user
+
+def get_current_active_editor(
+    current_user: UserFromJWT = Depends(get_current_user),
+) -> UserFromJWT:
+    """
+    Verifica se o usuário é um Editor ou um Superuser.
+    """
+    if current_user.role == "editor" or current_user.is_superuser:
+        return current_user
+    raise HTTPException(status_code=403, detail="Acesso restrito a editores e administradores")
