@@ -16,6 +16,14 @@ class UserBase(BaseModel):
     email: Optional[EmailStr] = None
     nome_completo: Optional[str] = None
     orcid_id: Optional[str] = None
+    cidade: Optional[str] = None
+    universidade: Optional[str] = None
+    area_formacao: Optional[str] = None
+    lattes_link: Optional[str] = None
+    linkedin_link: Optional[str] = None
+    instagram_link: Optional[str] = None
+    avatar_url: Optional[str] = None
+    grau_formacao: Optional[str] = None
     is_active: bool = True
     is_superuser: bool = False
 
@@ -26,6 +34,15 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     nome_completo: Optional[str] = None
+    orcid_id: Optional[str] = None
+    cidade: Optional[str] = None
+    universidade: Optional[str] = None
+    area_formacao: Optional[str] = None
+    lattes_link: Optional[str] = None
+    linkedin_link: Optional[str] = None
+    instagram_link: Optional[str] = None
+    avatar_url: Optional[str] = None
+    grau_formacao: Optional[str] = None
 
 class UserAdminUpdate(UserUpdate):
     is_active: Optional[bool] = None
@@ -43,6 +60,7 @@ class PublicacaoBase(BaseModel):
     ano_publicacao: Optional[int] = None
     tipo: Optional[str] = "livro"
     issn_isbn: Optional[str] = None
+    usuario_id: Optional[UUID] = None
 
 class PublicacaoCreate(PublicacaoBase):
     pass

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Numeric, Boolean, DateTime, Text, UUID
+from sqlalchemy import Column, Integer, String, ForeignKey, Numeric, Boolean, DateTime, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.base_class import Base
@@ -9,6 +10,15 @@ class Usuario(Base):
     hashed_password = Column(String, nullable=True)
     nome_completo = Column(String)
     orcid_id = Column(String, unique=True, index=True, nullable=True)
+    role = Column(String, default="autor")
+    cidade = Column(String)
+    universidade = Column(String)
+    area_formacao = Column(String)
+    lattes_link = Column(String)
+    linkedin_link = Column(String)
+    instagram_link = Column(String)
+    avatar_url = Column(String)
+    grau_formacao = Column(String)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
     
@@ -24,6 +34,7 @@ class Publicacao(Base):
     ano_publicacao = Column(Integer)
     tipo = Column(String) # livro, artigo, etc.
     issn_isbn = Column(String)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuario.id"), nullable=True)
     
     vagas = relationship("Vaga", back_populates="publicacao")
     autores = relationship("AutorPublicacao", back_populates="publicacao")

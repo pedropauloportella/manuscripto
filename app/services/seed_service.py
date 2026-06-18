@@ -16,13 +16,26 @@ class SeedService:
                 id=admin_id,
                 email=admin_email,
                 nome_completo="Administrador Geral",
+                role="admin",
+                grau_formacao="Doutorado",
                 is_superuser=True,
+                is_active=True
+            ),
+            models.Usuario(
+                id=uuid.uuid4(),
+                email="editor@manuscripto.com",
+                nome_completo="Editor Exemplo",
+                role="editor",
+                grau_formacao="Mestre",
+                is_superuser=False,
                 is_active=True
             ),
             models.Usuario(
                 id=uuid.uuid4(),
                 email="joao.silva@email.com",
                 nome_completo="João Silva",
+                role="autor",
+                grau_formacao="Graduado",
                 is_superuser=False,
                 is_active=True
             ),
@@ -30,6 +43,8 @@ class SeedService:
                 id=uuid.uuid4(),
                 email="maria.oliveira@email.com",
                 nome_completo="Maria Oliveira",
+                role="autor",
+                grau_formacao="Mestrando",
                 is_superuser=False,
                 is_active=True
             )
@@ -45,6 +60,7 @@ class SeedService:
         pub1 = models.Publicacao(
             id=uuid.uuid4(),
             titulo="Inteligência Artificial na Educação Moderna",
+            usuario_id=admin_id,
             subtitulo="Desafios e Oportunidades no Século XXI",
             descricao="Uma análise profunda sobre o impacto de LLMs em salas de aula.",
             tipo="livro",
@@ -53,6 +69,7 @@ class SeedService:
         pub2 = models.Publicacao(
             id=uuid.uuid4(),
             titulo="Sustentabilidade Urbana",
+            usuario_id=admin_id,
             subtitulo="Cidades Verdes e o Futuro",
             descricao="Estudo de caso sobre mobilidade urbana sustentável em capitais brasileiras.",
             tipo="artigo",
