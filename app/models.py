@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import Column, Integer, String, ForeignKey, Numeric, Boolean, DateTime, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -6,19 +7,20 @@ from app.db.base_class import Base
 
 class Usuario(Base):
     __tablename__ = "usuario"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=True)
-    nome_completo = Column(String)
+    nome_completo = Column(String, nullable=True) # Pode vir do OAuth sem nome completo
     orcid_id = Column(String, unique=True, index=True, nullable=True)
-    role = Column(String, default="autor")
-    cidade = Column(String)
-    universidade = Column(String)
-    area_formacao = Column(String)
-    lattes_link = Column(String)
-    linkedin_link = Column(String)
-    instagram_link = Column(String)
-    avatar_url = Column(String)
-    grau_formacao = Column(String)
+    role = Column(String, server_default="autor", nullable=False) # Deve sempre ter uma role
+    cidade = Column(String, nullable=True)
+    universidade = Column(String, nullable=True)
+    area_formacao = Column(String, nullable=True)
+    lattes_link = Column(String, nullable=True)
+    linkedin_link = Column(String, nullable=True)
+    instagram_link = Column(String, nullable=True)
+    avatar_url = Column(String, nullable=True)
+    grau_formacao = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
     
@@ -28,6 +30,7 @@ class Usuario(Base):
 
 class Publicacao(Base):
     __tablename__ = "publicacao"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     titulo = Column(String, index=True, nullable=False)
     subtitulo = Column(String)
     descricao = Column(Text)
@@ -42,7 +45,8 @@ class Publicacao(Base):
 
 class Vaga(Base):
     __tablename__ = "vaga"
-    publicacao_id = Column(UUID, ForeignKey("publicacao.id"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    publicacao_id = Column(UUID(as_uuid=True), ForeignKey("publicacao.id"))
     titulo = Column(String, nullable=False)
     descricao = Column(Text)
     preco = Column(Numeric(10, 2), nullable=False)
@@ -54,8 +58,9 @@ class Vaga(Base):
 
 class Compra(Base):
     __tablename__ = "compra"
-    usuario_id = Column(UUID, ForeignKey("usuario.id"))
-    vaga_id = Column(UUID, ForeignKey("vaga.id"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuario.id"))
+    vaga_id = Column(UUID(as_uuid=True), ForeignKey("vaga.id"))
     data_compra = Column(DateTime, default=datetime.utcnow)
     valor_pago = Column(Numeric(10, 2))
     status = Column(String) # pendente, aprovada, cancelada
@@ -67,9 +72,10 @@ class Compra(Base):
 
 class AutorPublicacao(Base):
     __tablename__ = "autor_publicacao"
-    usuario_id = Column(UUID, ForeignKey("usuario.id"))
-    publicacao_id = Column(UUID, ForeignKey("publicacao.id"))
-    compra_id = Column(UUID, ForeignKey("compra.id"), nullable=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuario.id"))
+    publicacao_id = Column(UUID(as_uuid=True), ForeignKey("publicacao.id"))
+    compra_id = Column(UUID(as_uuid=True), ForeignKey("compra.id"), nullable=True)
     funcao = Column(String) # autor, coautor, organizador
     
     usuario = relationship("Usuario", back_populates="publicacoes")
@@ -77,7 +83,8 @@ class AutorPublicacao(Base):
 
 class Versao(Base):
     __tablename__ = "versao"
-    publicacao_id = Column(UUID, ForeignKey("publicacao.id"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    publicacao_id = Column(UUID(as_uuid=True), ForeignKey("publicacao.id"))
     numero_versao = Column(String, nullable=False)
     data_upload = Column(DateTime, default=datetime.utcnow)
     caminho_arquivo_s3 = Column(String, nullable=False)
@@ -86,11 +93,12 @@ class Versao(Base):
 
 class LogEvento(Base):
     __tablename__ = "log_evento"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tipo_evento = Column(String, nullable=False) # login, upload, compra, etc.
     descricao = Column(Text)
     data_evento = Column(DateTime, default=datetime.utcnow)
-    usuario_id = Column(UUID, ForeignKey("usuario.id"), nullable=True)
-    entidade_id = Column(UUID, nullable=True) # ID da vaga, publicacao, etc.
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuario.id"), nullable=True)
+    entidade_id = Column(UUID(as_uuid=True), nullable=True) # ID da vaga, publicacao, etc.
     entidade_tipo = Column(String, nullable=True)
     
     usuario = relationship("Usuario", back_populates="logs")

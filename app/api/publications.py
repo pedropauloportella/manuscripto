@@ -22,7 +22,9 @@ def create_publication(
     current_user: deps.UserFromJWT = Depends(deps.get_current_active_editor)
 ):
     """Cria uma nova publicação (Admin e Editores)."""
-    db_obj = models.Publicacao(**obj_in.model_dump(), usuario_id=current_user.id)
+    data = obj_in.model_dump()
+    data["usuario_id"] = current_user.id
+    db_obj = models.Publicacao(**data)
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)

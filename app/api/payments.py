@@ -13,7 +13,7 @@ from app.services.mercadopago_service import mp_service
 # from app.services.messaging_service import messaging_service
 
 router = APIRouter()
-redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, decode_responses=True)
+redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 @router.post("/checkout/{vaga_id}")
 def create_checkout(
