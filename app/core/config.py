@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     # Redis (Mensageria)
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
+    REDIS_URL: Optional[str] = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -59,6 +60,10 @@ class Settings(BaseSettings):
             placeholders = ["https://[REF].supabase.co", "https://DATABASE_REF.supabase.co"]
             if not self.S3_ENDPOINT or any(p in self.S3_ENDPOINT for p in placeholders):
                 self.S3_ENDPOINT = f"https://{self.DATABASE_REF}.supabase.co/storage/v1/s3"
+
+        if not self.REDIS_URL:
+            self.REDIS_URL = f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/0"
+            
         return self
 
 settings = Settings()

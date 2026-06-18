@@ -2,6 +2,7 @@ import uuid
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from app import models
+from app.services.cache_service import cache_service
 
 class SeedService:
     def __init__(self, db: Session):
@@ -51,10 +52,18 @@ class SeedService:
         ]
 
         for user_data in users_to_create:
-            existing = self.db.query(models.Usuario).filter(models.Usuario.id == user_data.id).first()
+            # Verifica se o usuário já existe por ID ou Email para evitar duplicidade e erro 500
+            existing = self.db.query(models.Usuario).filter(
+                (models.Usuario.id == user_data.id) | 
+                (models.Usuario.email == user_data.email)
+            ).first()
             if not existing:
                 self.db.add(user_data)
-        self.db.flush() # Garante que os IDs existam antes de criar relações
+            else:
+                # Se o usuário já existe, sincroniza o ID para as relações (AutorPublicacao) abaixo
+                user_data.id = existing.id
+        
+        self.db.flush() # Garante que os estados existam antes de criar relações
 
         # 2. Criar Publicações
         pub1 = models.Publicacao(
@@ -92,26 +101,58 @@ class SeedService:
         )
         self.db.add(vaga1)
 
+        # 4. Vincular Autores às Publicações (AutorPublicacao)
+        vinculos = [
+            models.AutorPublicacao(
+                usuario_id=users_to_create[2].id, # João Silva
+                publicacao_id=pub1.id,
+                funcao="autor"
+            ),
+            models.AutorPublicacao(
+                usuario_id=users_to_create[3].id, # Maria Oliveira
+                publicacao_id=pub1.id,
+                funcao="coautor"
+            )
+        ]
+        self.db.add_all(vinculos)
+
         self.db.commit()
         print("Banco de dados populado com sucesso!")
 
     def clear_data(self):
-        print("Iniciando a remoção de dados fictícios...")
-        # Ordem inversa de criação para evitar problemas de FK
-        self.db.query(models.Vaga).delete()
-        self.db.query(models.Publicacao).delete()
-        self.db.query(models.AutorPublicacao).delete()
-        self.db.query(models.Compra).delete()
-        self.db.query(models.Versao).delete()
-        self.db.query(models.LogEvento).delete()
+        print("Iniciando a remoção seletiva de dados fictícios...")
         
-        # Remove todos os usuários, exceto o admin (para não deslogar o superuser)
-        # ou remove todos se o admin for recriado no seed
-        # Por simplicidade, vamos remover todos os usuários criados pelo script,
-        # exceto o admin que está logado.
-        # Isso requer que o admin_id seja passado ou que o admin não seja deletado
-        # Vamos deletar todos e o seed recria o admin.
-        self.db.query(models.Usuario).delete()
+        # Identificadores únicos dos dados criados pelo seed
+        seed_emails = ["editor@manuscripto.com", "joao.silva@email.com", "maria.oliveira@email.com"]
+        seed_titles = ["Inteligência Artificial na Educação Moderna", "Sustentabilidade Urbana"]
+
+        # 1. Identificar IDs para deleção cirúrgica
+        user_ids = [u.id for u in self.db.query(models.Usuario.id).filter(models.Usuario.email.in_(seed_emails)).all()]
+        pub_ids = [p.id for p in self.db.query(models.Publicacao.id).filter(models.Publicacao.titulo.in_(seed_titles)).all()]
+        vaga_ids = [v.id for v in self.db.query(models.Vaga.id).filter(models.Vaga.publicacao_id.in_(pub_ids)).all()]
+
+        # 2. Deletar em ordem rigorosa (FK constraints) usando filtros específicos
+        self.db.query(models.LogEvento).filter(
+            (models.LogEvento.usuario_id.in_(user_ids)) | (models.LogEvento.entidade_id.in_(pub_ids))
+        ).delete(synchronize_session=False)
+
+        self.db.query(models.AutorPublicacao).filter(
+            (models.AutorPublicacao.usuario_id.in_(user_ids)) | (models.AutorPublicacao.publicacao_id.in_(pub_ids))
+        ).delete(synchronize_session=False)
+
+        self.db.query(models.Versao).filter(models.Versao.publicacao_id.in_(pub_ids)).delete(synchronize_session=False)
+
+        self.db.query(models.Compra).filter(
+            (models.Compra.usuario_id.in_(user_ids)) | (models.Compra.vaga_id.in_(vaga_ids))
+        ).delete(synchronize_session=False)
+
+        self.db.query(models.Vaga).filter(models.Vaga.id.in_(vaga_ids)).delete(synchronize_session=False)
+        self.db.query(models.Publicacao).filter(models.Publicacao.id.in_(pub_ids)).delete(synchronize_session=False)
+        
+        # Deletar usuários (o admin nunca entra aqui pois seu email não está em seed_emails)
+        self.db.query(models.Usuario).filter(models.Usuario.id.in_(user_ids)).delete(synchronize_session=False)
 
         self.db.commit()
+        # Limpa o cache global para garantir que dados de teste não persistam na UI
+        cache_service.flush_all()
         print("Dados fictícios removidos com sucesso!")

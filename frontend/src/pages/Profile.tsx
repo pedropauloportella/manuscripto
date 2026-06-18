@@ -3,11 +3,12 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import api from '../services/api';
 import { useNotification } from '../context/NotificationContext';
-import { User, Mail, MapPin, School, GraduationCap, Link as LinkIcon, Save, Loader2, Linkedin, Instagram, ExternalLink } from 'lucide-react';
+import { User, Mail, MapPin, School, GraduationCap, Link as LinkIcon, Save, Loader2, Linkedin, Instagram, ExternalLink, Book } from 'lucide-react';
 
 export const Profile = () => {
   const { id } = useParams<{ id: string }>();
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<any>({}); // Initialize as empty object to prevent null access
+  const [userPublications, setUserPublications] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,6 +26,10 @@ export const Profile = () => {
         // Busca os dados do perfil pelo ID do slug
         const res = await api.get(`/auth/profile/${id}`);
         setUserData(res.data);
+
+        // Busca as publicações vinculadas a este ID
+        const pubsRes = await api.get(`/auth/profile/${id}/publications`);
+        setUserPublications(pubsRes.data);
       } catch (error) {
         showNotification("Erro ao carregar perfil", "error");
       } finally {
@@ -189,6 +194,29 @@ export const Profile = () => {
                   </div>
                 </div>
               </div>
+            </section>
+
+            <section className="pt-8 border-t border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <Book className="h-5 w-5 mr-2 text-indigo-600" /> Publicações e Obras
+              </h2>
+              {userPublications.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {userPublications.map((pub: any) => (
+                    <div key={pub.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex items-start">
+                      <div className="bg-white p-2 rounded-lg shadow-sm mr-3">
+                        <Book className="h-5 w-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900 leading-tight">{pub.titulo}</h4>
+                        <p className="text-xs text-gray-500 uppercase mt-1 font-semibold">{pub.tipo} • {pub.ano_publicacao}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 italic">Nenhuma publicação encontrada para este perfil.</p>
+              )}
             </section>
 
             {isOwner && (
