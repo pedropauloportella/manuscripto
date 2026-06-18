@@ -66,6 +66,8 @@ services:
     command: python scripts/worker.py
     volumes:
       - .:/app
+    environment:
+      - PYTHONPATH=/app
     env_file:
       - .env
     depends_on:

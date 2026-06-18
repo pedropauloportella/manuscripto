@@ -1,6 +1,11 @@
 __pycache__/
 *.py[cod]
-.venv/
 venv/
 .env
-.git/
+.git
+.gitignore
+logs/
+.pytest_cache/
+tests/
+*.log
+.vscode/
